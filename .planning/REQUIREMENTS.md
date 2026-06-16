@@ -99,13 +99,41 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (to be filled by roadmapper) | — | Pending |
+| DATA-02 | Phase 1 | Pending |
+| DATA-06 | Phase 1 | Pending |
+| DATA-01 | Phase 2 | Pending |
+| DATA-03 | Phase 2 | Pending |
+| DATA-04 | Phase 2 | Pending |
+| DATA-05 | Phase 2 | Pending |
+| NAME-01 | Phase 2 | Pending |
+| NAME-02 | Phase 2 | Pending |
+| RPT-01 | Phase 2 | Pending |
+| RPT-02 | Phase 2 | Pending |
+| LOOK-01 | Phase 3 | Pending |
+| LOOK-02 | Phase 3 | Pending |
+| LOOK-03 | Phase 3 | Pending |
+| INPT-01 | Phase 3 | Pending |
+| INPT-02 | Phase 3 | Pending |
+| INPT-03 | Phase 3 | Pending |
+| PREV-01 | Phase 3 | Pending |
+| ERR-01 | Phase 3 | Pending |
+| ERR-02 | Phase 3 | Pending |
+| DEP-01 | Phase 3 | Pending |
+| DEP-02 | Phase 3 | Pending |
+| PDF-01 | Phase 4 | Pending |
+| PDF-02 | Phase 4 | Pending |
+| PDF-03 | Phase 4 | Pending |
+| CLM-01 | Phase 5 | Pending |
+| CLM-02 | Phase 5 | Pending |
+| DOCX-01 | Phase 6 | Pending |
+| VIZ-01 | Phase 7 | Pending |
+| VIZ-02 | Phase 7 | Pending |
 
 **Coverage:**
 - v1 requirements: 27 total
-- Mapped to phases: TBD (roadmapper)
-- Unmapped: TBD
+- Mapped to phases: 27/27
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-06-15*
-*Last updated: 2026-06-15 after initial definition*
+*Last updated: 2026-06-15 — traceability table populated by roadmapper*
