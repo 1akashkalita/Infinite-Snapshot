@@ -1,0 +1,16 @@
+# Build output and generated files
+.next
+out
+build
+coverage
+
+# Dependencies
+node_modules
+
+# Lockfiles and generated type files (machine-managed)
+package-lock.json
+next-env.d.ts
+*.tsbuildinfo
+
+# Binary/static assets without a Prettier parser
+public

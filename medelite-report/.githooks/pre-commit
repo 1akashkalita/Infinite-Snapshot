@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+#
+# Pre-commit quality gate. Runs the full verify gate (typecheck, lint,
+# format:check, test) and aborts the commit if anything fails, because the
+# commit's exit status is that of the last command below.
+#
+# Enable once per clone:
+#   git config core.hooksPath .githooks
+#   chmod +x .githooks/pre-commit
+
+echo "pre-commit: running 'npm run verify' ..."
+npm run verify
