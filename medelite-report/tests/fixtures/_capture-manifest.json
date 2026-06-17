@@ -1,0 +1,42 @@
+{
+  "captured_at": "2026-06-17T18:39:41.003Z",
+  "source": "CMS Provider Data Catalog API",
+  "query_endpoint": "https://data.cms.gov/provider-data/api/1/datastore/query/{datasetId}/0",
+  "metastore_url": "https://data.cms.gov/provider-data/api/1/metastore/schemas/dataset/items",
+  "note": "Dataset IDs are stable and re-confirmed against the CMS metastore on every capture. The /datastore/query/{id}/0 endpoint resolves the current distribution by dataset ID, so rotating distribution URLs are never hardcoded; distribution_urls + dataset_modified below record exactly which CMS vintage these fixtures came from.",
+  "datasets": [
+    {
+      "dataset_id": "4pq5-n9py",
+      "dataset_title": "Provider Information",
+      "dataset_modified": "2026-05-01",
+      "output_file": "provider-686123.json",
+      "row_count": 1,
+      "filter": "cms_certification_number_ccn=686123",
+      "distribution_urls": [
+        "https://data.cms.gov/provider-data/sites/default/files/resources/38f631a211bad946a404d39a1c66d599_1778861765/NH_ProviderInfo_May2026.csv"
+      ]
+    },
+    {
+      "dataset_id": "ijh5-nb2v",
+      "dataset_title": "Medicare Claims Quality Measures",
+      "dataset_modified": "2026-05-01",
+      "output_file": "claims-686123.json",
+      "row_count": 4,
+      "filter": "cms_certification_number_ccn=686123",
+      "distribution_urls": [
+        "https://data.cms.gov/provider-data/sites/default/files/resources/dbae8cccd244fb26845d52844574f306_1778861759/NH_QualityMsr_Claims_May2026.csv"
+      ]
+    },
+    {
+      "dataset_id": "xcdc-v8bm",
+      "dataset_title": "State US Averages",
+      "dataset_modified": "2026-05-01",
+      "output_file": "averages-xcdc.json",
+      "row_count": 2,
+      "filter": "state_or_nation=NATION | state_or_nation=FL",
+      "distribution_urls": [
+        "https://data.cms.gov/provider-data/sites/default/files/resources/322db3f58163626ea2e60303d747c62c_1778861769/NH_StateUSAverages_May2026.csv"
+      ]
+    }
+  ]
+}

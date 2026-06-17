@@ -47,22 +47,51 @@ const REGISTRY: DatasetCapture[] = [
 
 // ─── Metastore validation ────────────────────────────────────────────────────
 
-async function validateDatasetIds(ids: string[]): Promise<void> {
+interface DatasetMeta {
+  title?: string;
+  modified?: string;
+  distributionUrls: string[];
+}
+
+async function resolveDatasets(
+  ids: string[],
+): Promise<Map<string, DatasetMeta>> {
   console.log("Validating dataset IDs against CMS metastore...");
   const res = await fetch(METASTORE_URL);
   if (!res.ok) {
     throw new Error(`Metastore fetch failed: HTTP ${res.status}`);
   }
-  const items = (await res.json()) as Array<{ identifier: string }>;
-  const known = new Set(items.map((item) => item.identifier));
+  const items = (await res.json()) as Array<{
+    identifier: string;
+    title?: string;
+    modified?: string;
+    distribution?: Array<{ downloadURL?: string }>;
+  }>;
+  // Map each dataset ID → provenance: title, last-modified date, and the distribution
+  // downloadURL(s). The URL embeds the rotating distribution hash and a dated filename
+  // (e.g. NH_ProviderInfo_May2026.csv), so it records exactly which CMS vintage the
+  // committed fixtures came from — the /datastore/query/{id}/0 endpoint resolves the
+  // same distribution by stable dataset ID at fetch time (CLAUDE.md rule #3).
+  const byId = new Map<string, DatasetMeta>();
+  for (const item of items) {
+    const distributionUrls = (item.distribution ?? [])
+      .map((d) => d.downloadURL)
+      .filter((u): u is string => Boolean(u));
+    byId.set(item.identifier, {
+      title: item.title,
+      modified: item.modified,
+      distributionUrls,
+    });
+  }
   for (const id of ids) {
-    if (!known.has(id)) {
+    if (!byId.has(id)) {
       throw new Error(
         `Dataset ID "${id}" not found in CMS metastore — it may have been retired or renamed.`,
       );
     }
   }
   console.log(`All ${ids.length} dataset IDs confirmed in metastore.`);
+  return byId;
 }
 
 // ─── CMS fetch helper ────────────────────────────────────────────────────────
@@ -94,14 +123,28 @@ async function queryCMS(
 
 // ─── Main capture logic ──────────────────────────────────────────────────────
 
+interface ManifestDataset {
+  dataset_id: string;
+  dataset_title?: string;
+  dataset_modified?: string;
+  output_file: string;
+  row_count: number;
+  filter: string;
+  distribution_urls: string[];
+}
+
 export async function captureFixtures(): Promise<void> {
-  // Step 1: Validate all dataset IDs against the metastore before any fetch
+  const capturedAt = new Date().toISOString();
+
+  // Step 1: Re-resolve + validate all dataset IDs against the metastore before any fetch
   const ids = REGISTRY.map((entry) => entry.datasetId);
-  await validateDatasetIds(ids);
+  const metaById = await resolveDatasets(ids);
 
   // Step 2: Create fixtures directory (Pitfall 5 — does not exist yet)
   mkdirSync(FIXTURES_DIR, { recursive: true });
   console.log(`Fixtures directory ensured: ${FIXTURES_DIR}`);
+
+  const manifestDatasets: ManifestDataset[] = [];
 
   // Step 3: Capture each dataset
   for (const entry of REGISTRY) {
@@ -109,6 +152,9 @@ export async function captureFixtures(): Promise<void> {
     console.log(
       `\nCapturing ${entry.outputFile} from dataset ${entry.datasetId}...`,
     );
+
+    let rowCount = 0;
+    let filterDesc = "";
 
     if (entry.filter) {
       // Single-filter datasets (provider + claims)
@@ -118,6 +164,8 @@ export async function captureFixtures(): Promise<void> {
         entry.filter.value,
       );
       writeFileSync(outputPath, JSON.stringify(results, null, 2));
+      rowCount = results.length;
+      filterDesc = `${entry.filter.property}=${entry.filter.value}`;
       console.log(`  Written: ${entry.outputFile} (${results.length} row(s))`);
     } else if (entry.multiFilter) {
       // Multi-filter dataset (averages — fetch NATION and FL, write as keyed object)
@@ -130,9 +178,41 @@ export async function captureFixtures(): Promise<void> {
       }
       writeFileSync(outputPath, JSON.stringify(output, null, 2));
       const keys = Object.keys(output);
+      rowCount = keys.length;
+      filterDesc = entry.multiFilter
+        .map((f) => `${f.property}=${f.value}`)
+        .join(" | ");
       console.log(`  Written: ${entry.outputFile} (keys: ${keys.join(", ")})`);
     }
+
+    const meta = metaById.get(entry.datasetId);
+    manifestDatasets.push({
+      dataset_id: entry.datasetId,
+      dataset_title: meta?.title,
+      dataset_modified: meta?.modified,
+      output_file: entry.outputFile,
+      row_count: rowCount,
+      filter: filterDesc,
+      distribution_urls: meta?.distributionUrls ?? [],
+    });
   }
+
+  // Step 4: Write provenance manifest (D-03 / CLAUDE.md rule #3 — dataset IDs are
+  // re-resolved against the metastore on every capture; provenance is recorded so a
+  // graded repo shows when fixtures were captured and which datasets they came from).
+  const manifest = {
+    captured_at: capturedAt,
+    source: "CMS Provider Data Catalog API",
+    query_endpoint: `${BASE}/{datasetId}/0`,
+    metastore_url: METASTORE_URL,
+    note: "Dataset IDs are stable and re-confirmed against the CMS metastore on every capture. The /datastore/query/{id}/0 endpoint resolves the current distribution by dataset ID, so rotating distribution URLs are never hardcoded; distribution_urls + dataset_modified below record exactly which CMS vintage these fixtures came from.",
+    datasets: manifestDatasets,
+  };
+  writeFileSync(
+    join(FIXTURES_DIR, "_capture-manifest.json"),
+    JSON.stringify(manifest, null, 2),
+  );
+  console.log("\nWrote _capture-manifest.json (provenance).");
 
   console.log("\nAll fixtures captured successfully.");
 }
