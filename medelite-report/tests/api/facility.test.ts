@@ -14,12 +14,14 @@ afterEach(() => vi.unstubAllGlobals());
 function stubFetchHappy() {
   vi.stubGlobal(
     "fetch",
-    vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({ count: 1, results: [providerFixture[0]] }),
-        { status: 200 },
+    vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ count: 1, results: [providerFixture[0]] }),
+          { status: 200 },
+        ),
       ),
-    ),
   );
 }
 
@@ -27,9 +29,11 @@ function stubFetchHappy() {
 function stubFetchAbort() {
   vi.stubGlobal(
     "fetch",
-    vi.fn().mockRejectedValue(
-      new DOMException("The operation was aborted.", "AbortError"),
-    ),
+    vi
+      .fn()
+      .mockRejectedValue(
+        new DOMException("The operation was aborted.", "AbortError"),
+      ),
   );
 }
 
@@ -66,9 +70,7 @@ describe("GET /api/facility", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    const req = new NextRequest(
-      "http://localhost/api/facility?ccn=6861!3",
-    );
+    const req = new NextRequest("http://localhost/api/facility?ccn=6861!3");
     const resp = await GET(req);
     expect(resp.status).toBe(400);
     const body = await resp.json();
@@ -150,12 +152,14 @@ describe("GET /api/facility", () => {
   it("returns 502 validation_error when CMS row is malformed", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({ count: 1, results: [{ broken: true }] }),
-          { status: 200 },
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ count: 1, results: [{ broken: true }] }),
+            { status: 200 },
+          ),
         ),
-      ),
     );
     vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -170,12 +174,14 @@ describe("GET /api/facility", () => {
   it("D-05 LEAK INVARIANT: validation_error body contains no Zod internals", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({ count: 1, results: [{ broken: true }] }),
-          { status: 200 },
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ count: 1, results: [{ broken: true }] }),
+            { status: 200 },
+          ),
         ),
-      ),
     );
     vi.spyOn(console, "error").mockImplementation(() => {});
 

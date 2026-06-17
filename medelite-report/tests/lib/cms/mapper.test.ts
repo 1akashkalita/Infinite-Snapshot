@@ -13,7 +13,9 @@ describe("toFacilityData", () => {
   it("maps provider_name to providerName (NOT legal_business_name)", () => {
     const parsed = parseCMSRow(providerFixture[0]);
     const facility = toFacilityData(parsed);
-    expect(facility.providerName).toBe("KENDALL LAKES HEALTHCARE AND REHAB CENTER");
+    expect(facility.providerName).toBe(
+      "KENDALL LAKES HEALTHCARE AND REHAB CENTER",
+    );
     // NOT "KENDALL LAKES HEALTHCARE AND REHAB CENTER, LLC"
     expect(facility.providerName).not.toContain(", LLC");
   });

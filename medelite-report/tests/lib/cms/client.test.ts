@@ -13,12 +13,14 @@ describe("fetchFacility", () => {
   it("returns FacilityData for a valid CMS response", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({ count: 1, results: [providerFixture[0]] }),
-          { status: 200 },
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ count: 1, results: [providerFixture[0]] }),
+            { status: 200 },
+          ),
         ),
-      ),
     );
     const facility = await fetchFacility("686123");
     expect(facility.providerName).toBe(
@@ -32,9 +34,11 @@ describe("fetchFacility", () => {
   it("throws CmsError network_error when fetch is aborted", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockRejectedValue(
-        new DOMException("The operation was aborted.", "AbortError"),
-      ),
+      vi
+        .fn()
+        .mockRejectedValue(
+          new DOMException("The operation was aborted.", "AbortError"),
+        ),
     );
     await expect(fetchFacility("686123")).rejects.toMatchObject({
       kind: "network_error",
@@ -56,7 +60,11 @@ describe("fetchFacility", () => {
   it("throws CmsError cms_api_error when CMS returns non-200", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(new Response("Internal Server Error", { status: 500 })),
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response("Internal Server Error", { status: 500 }),
+        ),
     );
     await expect(fetchFacility("686123")).rejects.toMatchObject({
       kind: "cms_api_error",
@@ -82,12 +90,14 @@ describe("fetchFacility", () => {
   it("throws CmsError validation_error for malformed CMS row and logs to console.error", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({ count: 1, results: [{ broken: true }] }),
-          { status: 200 },
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ count: 1, results: [{ broken: true }] }),
+            { status: 200 },
+          ),
         ),
-      ),
     );
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -107,12 +117,14 @@ describe("fetchFacility", () => {
   it("validation_error message is honest non-retry copy", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({ count: 1, results: [{ broken: true }] }),
-          { status: 200 },
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ count: 1, results: [{ broken: true }] }),
+            { status: 200 },
+          ),
         ),
-      ),
     );
     vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -133,12 +145,14 @@ describe("fetchFacility", () => {
   it("validation_error CmsError carries no extra field (D-05 leak prevention)", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({ count: 1, results: [{ broken: true }] }),
-          { status: 200 },
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ count: 1, results: [{ broken: true }] }),
+            { status: 200 },
+          ),
         ),
-      ),
     );
     vi.spyOn(console, "error").mockImplementation(() => {});
 
