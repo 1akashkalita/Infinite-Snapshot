@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 02 Plan 02 complete
-last_updated: "2026-06-17T22:25:56.000Z"
-last_activity: 2026-06-17 -- Phase 02 Plan 02 (CCN → FacilityData HTTP slice) complete
+stopped_at: Phase 02 Plan 03 complete — Phase 2 DONE
+last_updated: "2026-06-17T22:35:00.000Z"
+last_activity: 2026-06-17 -- Phase 02 Plan 03 (FacilityData→ReportViewModel, PDF stub, phase gate) complete
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 5
-  percent: 21
+  completed_plans: 6
+  percent: 29
 ---
 
 # Project State
@@ -25,12 +25,13 @@ See: .planning/PROJECT.md (updated 2026-06-15)
 
 ## Current Position
 
-Phase: 02 (api-routes-view-model-config) — EXECUTING
-Plan: 3 of 3 (02-01, 02-02 complete; 02-03 next)
-Status: Executing Phase 02 — Wave 2
-Last activity: 2026-06-17 -- Phase 02 Plan 02 (CCN → validated FacilityData JSON over HTTP) complete
+Phase: 02 (api-routes-view-model-config) — COMPLETE
+Phase: 03 (web-ui-core-flow-deployment) — NEXT
+Plan: Phase 02 all 3/3 complete (02-01, 02-02, 02-03)
+Status: Phase 02 complete; Phase 03 is next
+Last activity: 2026-06-17 -- Phase 02 Plan 03 (FacilityData→ReportViewModel, phase gate verify:full green) complete
 
-Progress: [█████████░] 67%
+Progress: [██████████░░░░░░░░░░] 29%
 
 ## Performance Metrics
 
@@ -84,6 +85,12 @@ Recent decisions affecting current work:
 - D-24 (02-01): CMS_BASE_URL, DATASET_PROVIDER_INFO ('4pq5-n9py'), CCN_FILTER_FIELD ('cms_certification_number_ccn') centralized in constants.ts, each traced to fixture (NOT federal_provider_number from ARCHITECTURE.md memory)
 - D-01/D-03 (02-01): 5-kind discriminated union (CmsApiErrorSchema) + assertNever exhaustiveness guard in errors.ts; validation_error carries no extra field (D-05 T-02-LEAK)
 - D-18 (02-01): CmsError class extends Error; Object.setPrototypeOf used for reliable instanceof across transpilation targets
+- RPT-01 (02-03): assembleHeader(state) has exactly one string param — TypeScript enforces no facility-name arg at compile time
+- D-10 (02-03): formatters check === null (not falsiness) — formatRating(0)='0', null='N/A'; shared PLACEHOLDER='N/A'
+- D-12 (02-03): assembleViewModel is pure/deterministic — generatedAt injected by caller, never new Date() internally
+- NAME-02 (02-03): displayName = manual.nameOverride?.trim() || facility.providerName — static header is unaffected
+- D-25 (02-03): serverExternalPackages: ['@react-pdf/renderer'] added explicitly to next.config.ts; verified by next build in verify:full
+- D-21 (02-03): ReportViewModelSchema is the canonical Zod schema — PDF route and Phase 4/6 renderers validate against it
 
 ### Pending Todos
 
@@ -103,6 +110,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-17T21:00:00.000Z
-Stopped at: Phase 02 Plan 01 complete — contracts (constants.ts, types.ts, errors.ts) committed
-Resume file: .planning/phases/02-api-routes-view-model-config/02-02-PLAN.md
+Last session: 2026-06-17T22:35:00.000Z
+Stopped at: Phase 02 Plan 03 complete — Phase 2 fully done (all 3 plans committed)
+Resume file: .planning/phases/03-web-ui-core-flow-deployment/ (to be planned)

@@ -77,7 +77,7 @@ Plans:
 **Wave 2** *(parallel; depend on 02-01, zero file overlap)*
 
 - [x] 02-02-PLAN.md — Slice: CCN → validated `FacilityData` JSON over HTTP — mapper + `fetchFacility` pipeline (8s timeout) + `GET /api/facility` with the 5-kind taxonomy and the D-05 leak invariant
-- [ ] 02-03-PLAN.md — Slice: `FacilityData` → shared `ReportViewModel` — static `assembleHeader` + null-safe formatter family + `assembleViewModel` + `POST /api/export/pdf` stub + `next.config` serverExternalPackages (phase gate `verify:full`)
+- [x] 02-03-PLAN.md — Slice: `FacilityData` → shared `ReportViewModel` — static `assembleHeader` + null-safe formatter family + `assembleViewModel` + `POST /api/export/pdf` stub + `next.config` serverExternalPackages (phase gate `verify:full`)
 
 ### Phase 3: Web UI, Core Flow & Deployment
 
@@ -175,7 +175,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & CMS Data Layer | 3/3 | Complete   | 2026-06-17 |
-| 2. API Routes, View Model & Config | 2/3 | In Progress|  |
+| 2. API Routes, View Model & Config | 3/3 | Complete   | 2026-06-17 |
 | 3. Web UI, Core Flow & Deployment | 0/TBD | Not started | - |
 | 4. PDF Export | 0/TBD | Not started | - |
 | 5. Claims-Based Metrics | 0/TBD | Not started | - |
