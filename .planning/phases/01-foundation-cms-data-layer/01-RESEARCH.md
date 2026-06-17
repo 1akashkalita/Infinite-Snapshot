@@ -768,7 +768,7 @@ const provider = result.data   // type: ParsedProvider
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should malformed fixtures be files or inline constants in test files?**
    - What we know: Both work; `resolveJsonModule: true` enables JSON import.
