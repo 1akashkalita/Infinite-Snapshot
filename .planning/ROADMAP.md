@@ -31,9 +31,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. `tests/fixtures/provider-686123.json` exists and contains valid CMS JSON for CCN 686123 captured via `npm run fixture:capture`
   2. `npm install` of all five production libraries (`@react-pdf/renderer`, `zod`, `docx`, `recharts`, `react-pdf-charts`) completes without peer-dep errors and `tsc --noEmit` is clean
   3. Every CMS field used in the schema traces to the fixture or NH_Data_Dictionary — no field name from memory
-  4. `CMSRowSchema.safeParse()` accepts the reference fixture row and rejects a malformed row; all star-rating fields are `.nullable().optional()` so a suppressed-data facility does not throw
+  4. `CMSRowSchema.safeParse()` accepts the reference fixture row and rejects a malformed row; all star-rating fields are `.nullable().optional()` so a suppressed-data facility does not throw (refined by CONTEXT D-06 to required-key + `.nullable()`-value — `.optional()` intentionally dropped so a renamed/removed key fails loudly; same intent, stricter enforcement)
   5. `npm run verify` is green (typecheck, lint, format, tests all pass)
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 01-01-PLAN.md — Install the five production libraries (pinned; recharts v2) behind a package-legitimacy checkpoint
+- [ ] 01-02-PLAN.md — Implement npm run fixture:capture (dataset registry) and capture provider/claims/averages fixtures for CCN 686123
+- [ ] 01-03-PLAN.md — Build provider CMSRowSchema + parse module + the DATA-02/DATA-06 test suite (empty→null, real 0, missing-key fail, leading-zero strings)
 
 ### Phase 2: API Routes, View Model & Config
 **Goal**: The server API surface is complete — a GET `/api/facility` route validates and proxies CMS data, a POST `/api/export/pdf` stub is in place, the shared `ReportViewModel` type and `assembleHeader()` function exist, and `npm run verify:full` is green including the production build.
@@ -130,7 +134,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & CMS Data Layer | 0/TBD | Not started | - |
+| 1. Foundation & CMS Data Layer | 0/3 | Not started | - |
 | 2. API Routes, View Model & Config | 0/TBD | Not started | - |
 | 3. Web UI, Core Flow & Deployment | 0/TBD | Not started | - |
 | 4. PDF Export | 0/TBD | Not started | - |
