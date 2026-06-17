@@ -58,6 +58,7 @@ Plans:
 
   - Location is **composed** from `provider_address` + `citytown` + `state` (e.g. `5280 SW 157th Ave, Miami, FL`), **no ZIP** — do not reuse the combined `location` field.
   - Quality star rating maps to the **`qm_rating`** column (not `longstay_qm_rating`/`shortstay_qm_rating`); Overall/Health Inspection/Staffing → `overall_rating`/`health_inspection_rating`/`staffing_rating`.
+  - **Deliberate, fixture-verified deviation (D-15):** `providerName ← provider_name` (the operating name, no `LLC`), NOT `legal_business_name` — the reference-output match rule wins over NAME-01's "legal name" prose. Do not "correct" this.
 
 **Success Criteria** (what must be TRUE):
 
@@ -67,8 +68,16 @@ Plans:
   4. `assembleViewModel(facilityData, manualInputs)` produces a `ReportViewModel` where `displayName` respects the manual override, and `careCompareUrl` contains the correct CCN
   5. `npm run verify:full` (typecheck + lint + format + tests + `next build`) is green
 
-**Plans**: TBD
-**UI hint**: no
+**Plans**: 3 plans
+Plans:
+**Wave 1**
+
+- [ ] 02-01-PLAN.md — Contract foundation: centralized CMS constants (`4pq5-n9py`), the camelCase `FacilityData` type, and the 5-kind error union + `CmsError`/`assertNever`
+
+**Wave 2** *(parallel; depend on 02-01, zero file overlap)*
+
+- [ ] 02-02-PLAN.md — Slice: CCN → validated `FacilityData` JSON over HTTP — mapper + `fetchFacility` pipeline (8s timeout) + `GET /api/facility` with the 5-kind taxonomy and the D-05 leak invariant
+- [ ] 02-03-PLAN.md — Slice: `FacilityData` → shared `ReportViewModel` — static `assembleHeader` + null-safe formatter family + `assembleViewModel` + `POST /api/export/pdf` stub + `next.config` serverExternalPackages (phase gate `verify:full`)
 
 ### Phase 3: Web UI, Core Flow & Deployment
 
@@ -166,7 +175,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & CMS Data Layer | 3/3 | Complete   | 2026-06-17 |
-| 2. API Routes, View Model & Config | 0/TBD | Not started | - |
+| 2. API Routes, View Model & Config | 0/3 | Not started | - |
 | 3. Web UI, Core Flow & Deployment | 0/TBD | Not started | - |
 | 4. PDF Export | 0/TBD | Not started | - |
 | 5. Claims-Based Metrics | 0/TBD | Not started | - |
