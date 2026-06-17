@@ -103,7 +103,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | DATA-02 | Phase 1 | Pending |
-| DATA-06 | Phase 1 | Pending |
+| DATA-06 | Phase 1 | In progress (fixtures captured in 01-02; schema anchoring completes in 01-03) |
 | DATA-01 | Phase 2 | Pending |
 | DATA-03 | Phase 2 | Pending |
 | DATA-04 | Phase 2 | Pending |

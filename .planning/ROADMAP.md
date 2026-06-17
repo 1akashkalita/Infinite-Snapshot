@@ -42,7 +42,7 @@ Plans:
 **Wave 1**
 
 - [ ] 01-01-PLAN.md — Install the five production libraries (pinned; recharts v2) behind a package-legitimacy checkpoint
-- [ ] 01-02-PLAN.md — Implement npm run fixture:capture (dataset registry) and capture provider/claims/averages fixtures for CCN 686123
+- [x] 01-02-PLAN.md — Implement npm run fixture:capture (dataset registry) and capture provider/claims/averages fixtures for CCN 686123
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -165,7 +165,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & CMS Data Layer | 0/3 | Not started | - |
+| 1. Foundation & CMS Data Layer | 2/3 | In progress | - |
 | 2. API Routes, View Model & Config | 0/TBD | Not started | - |
 | 3. Web UI, Core Flow & Deployment | 0/TBD | Not started | - |
 | 4. PDF Export | 0/TBD | Not started | - |
