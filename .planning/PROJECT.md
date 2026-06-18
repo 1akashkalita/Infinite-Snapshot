@@ -18,8 +18,9 @@ Enter a CCN → instantly get an accurate, polished, downloadable facility snaps
 
 - [x] **Foundation & CMS data layer (Phase 1, 2026-06-17)** — five production libs installed at pinned versions (`recharts` held at v2 for react-pdf-charts compat); the three CMS fixtures for CCN 686123 captured from the live API with a `_capture-manifest.json` provenance record; `CMSRowSchema` + typed parse helpers (`parseCMSRow` / `safeParseCMSRow`) validate provider rows (empty→null, real `"0"` preserved, leading-zero CCN/ZIP kept as strings, non-string/malformed input rejected). Anchors DATA-02 + DATA-06; `npm run verify` green.
 - [x] **Server API surface, view-model & config (Phase 2, 2026-06-17)** — `GET /api/facility?ccn=` validates + proxies CMS data into a typed camelCase `FacilityData` (mapper uses `provider_name`/`qm_rating`, composes address without ZIP), with a 5-kind error taxonomy (`invalid_ccn`/`not_found`/`network_error`/`cms_api_error`/`validation_error`) mapped to distinct 400/404/502 responses behind an 8s abort timeout, and a leak-proof `validation_error` body (D-05). The shared `ReportViewModel` + canonical Zod schema, the static `assembleHeader(state)` (no facility-name arg — rule #2), null-safe formatters, and a `POST /api/export/pdf` stub all exist; `next.config` declares `serverExternalPackages: ['@react-pdf/renderer']`. Anchors DATA-01/03/04/05, NAME-01/02, RPT-01/02; `npm run verify:full` (incl. `next build`) green; code review findings resolved.
+- [x] **Web UI, core flow & first deploy (Phase 3, 2026-06-18)** — the headline flow is **live at https://infinite-snapshot.vercel.app** (public repo, Vercel git auto-deploy on `main` + PR previews, Root Directory `medelite-report`): enter a CCN → Generate → live `ReportPreview` populated from `GET /api/facility` via `assembleViewModel`, with client-side CCN precheck (`isValidCcnFormat`), inline-vs-banner error routing (`getErrorPresentation`), and the six manual operational inputs + facility-name override flowing into the preview on every keystroke (name override stays out of the static header — rule #2). The report body matches the reference report exactly (interleaved order + verbatim labels); the address renders as a documented raw-CMS pass-through. Anchors LOOK-01/02/03, INPT-01/02/03, PREV-01, ERR-01/02, DEP-01/02; code review's 1 critical (0-census falsiness, D-10) + 4 warnings fixed with a regression test; `npm run verify` green (147 tests).
 
-> The user-facing Active items below remain hypotheses until shipped — Phases 1–2 deliver the validated data + API foundation they build on (the first user-facing flow lands in Phase 3), not a user-facing feature yet.
+> Phase 3 ships the first user-facing flow (CCN → live preview → deployed). The remaining Required Active items below — the polished PDF export and the Medicare source hyperlink — land in Phase 4; the bonus items follow.
 
 ### Active
 
@@ -27,13 +28,13 @@ Enter a CCN → instantly get an accurate, polished, downloadable facility snaps
 
 **Required (must pass technical review):**
 
-- [ ] Dynamic CCN lookup — input box accepts any valid CCN, with validation and clear feedback
-- [ ] Data engine — query the public CMS Provider Data Catalog API by CCN; fetch location, star ratings (Overall, Health Inspection, Staffing, Quality Care), certified beds, and metadata
-- [ ] Facility name override — default to CMS legal name, with an optional text field that overrides it on the output (body only)
-- [ ] Manual operational inputs — EMR, Current Census, Type of Patient, Medical Coverage, Previous Provider Performance, Previous Coverage from Medelite (Yes/No)
+- [x] Dynamic CCN lookup — input box accepts any valid CCN, with validation and clear feedback _(Phase 3)_
+- [x] Data engine — query the public CMS Provider Data Catalog API by CCN; fetch location, star ratings (Overall, Health Inspection, Staffing, Quality Care), certified beds, and metadata _(Phase 2 API + Phase 3 live flow)_
+- [x] Facility name override — default to CMS legal name, with an optional text field that overrides it on the output (body only) _(Phase 3)_
+- [x] Manual operational inputs — EMR, Current Census, Type of Patient, Medical Coverage, Previous Provider Performance, Previous Coverage from Medelite (Yes/No) _(Phase 3)_
 - [ ] Polished PDF export — single "Download PDF" button triggers a direct browser download of a clean, print-ready document, built with `@react-pdf/renderer`
 - [ ] Medicare source hyperlink — the PDF includes a clickable link to `https://www.medicare.gov/care-compare/details/nursing-home/{CCN}` using the searched CCN
-- [ ] Deployment — live, working URL on Vercel alongside a public code repository
+- [x] Deployment — live, working URL on Vercel alongside a public code repository _(Phase 3 — https://infinite-snapshot.vercel.app)_
 
 **Bonus (committed — these are how we exceed expectations):**
 
@@ -79,7 +80,7 @@ Enter a CCN → instantly get an accurate, polished, downloadable facility snaps
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Rename product to "Infinite Snapshot" (app/repo/title only) | User directive; report header branding stays locked per CLAUDE.md rule #2 | — Pending |
-| Deploy on Vercel | Native Next.js 16 host, free tier, instant live URL — fits the "live working URL" deliverable | — Pending |
+| Deploy on Vercel | Native Next.js 16 host, free tier, instant live URL — fits the "live working URL" deliverable | ✓ Live (Phase 3 — infinite-snapshot.vercel.app, git auto-deploy, root dir `medelite-report`) |
 | Commit to all four bonuses + hardened error handling | User wants to land clearly above expectations with a week of runway | — Pending |
 | Use CCN 686123 (Kendall Lakes, FL) as the reference/test facility | Specified in CLAUDE.md; anchors the fixture and tests | — Pending |
 | The "12 metrics" = 4 measures × {facility, national avg, state avg}, across 3 datasets | Per NH_Data_Dictionary + reference docs + live API (corrects the earlier 4×score reading); averages live in `xcdc-v8bm`, not the claims provider file | ✓ Good |
@@ -106,4 +107,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-17 after Phase 2 (API Routes, View Model & Config) completion*
+*Last updated: 2026-06-18 after Phase 3 (Web UI, Core Flow & Deployment) completion — app live at https://infinite-snapshot.vercel.app*
