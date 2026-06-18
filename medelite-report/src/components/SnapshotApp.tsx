@@ -34,6 +34,7 @@ import { assembleViewModel } from "@/lib/report/view-model";
 import { getErrorPresentation } from "@/lib/ui/error-presentation";
 import { CCNSearchBar } from "@/components/CCNSearchBar";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { ManualInputsForm } from "@/components/ManualInputsForm";
 import { ReportPreview } from "@/components/ReportPreview";
 
 // FetchState drives both the skeleton and the button disabled state
@@ -154,7 +155,15 @@ export function SnapshotApp() {
           inlineError={inlineError}
         />
 
-        {/* ManualInputsForm will land here in Wave 4 */}
+        {/* ManualInputsForm — binds all six manual fields + name override (D-11/D-12/PREV-01) */}
+        {/* disabled={!facilityData}: inputs are disabled until the first successful fetch (D-11) */}
+        {/* onChange={setManualInputs}: re-runs assembleViewModel on every keystroke (PREV-01)     */}
+        {/* No re-fetch on manual edits — only handleSearch fetches CMS data                       */}
+        <ManualInputsForm
+          inputs={manualInputs}
+          onChange={setManualInputs}
+          disabled={!facilityData}
+        />
       </div>
 
       {/* Right pane — paper-like preview */}

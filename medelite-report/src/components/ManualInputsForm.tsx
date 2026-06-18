@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 // ManualInputsForm.tsx — Controlled form for all six manual operational inputs plus
 // the optional facility-name override.
@@ -16,7 +16,7 @@
 //   T-03-11: currentCensus uses e.target.valueAsNumber || null — non-numeric entry resolves
 //            to null rather than NaN propagating into the model.
 
-import type { ManualInputs } from '@/lib/report/view-model';
+import type { ManualInputs } from "@/lib/report/view-model";
 
 interface Props {
   inputs: ManualInputs;
@@ -49,14 +49,19 @@ export function ManualInputsForm({ inputs, onChange, disabled }: Props) {
 
       {/* Name Override — affects body "Name of Facility" only (NAME-02) */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-zinc-600" htmlFor="mi-nameOverride">
+        <label
+          className="text-xs font-medium text-zinc-600"
+          htmlFor="mi-nameOverride"
+        >
           Name Override
         </label>
         <input
           id="mi-nameOverride"
           type="text"
-          value={inputs.nameOverride ?? ''}
-          onChange={(e) => onChange({ ...inputs, nameOverride: e.target.value })}
+          value={inputs.nameOverride ?? ""}
+          onChange={(e) =>
+            onChange({ ...inputs, nameOverride: e.target.value })
+          }
           disabled={disabled}
           placeholder="Leave blank to use CMS name"
           className="rounded border border-zinc-300 px-3 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-400"
@@ -71,7 +76,7 @@ export function ManualInputsForm({ inputs, onChange, disabled }: Props) {
         <input
           id="mi-emr"
           type="text"
-          value={inputs.emr ?? ''}
+          value={inputs.emr ?? ""}
           onChange={(e) => onChange({ ...inputs, emr: e.target.value })}
           disabled={disabled}
           placeholder="e.g. PointClickCare"
@@ -81,15 +86,21 @@ export function ManualInputsForm({ inputs, onChange, disabled }: Props) {
 
       {/* Current Census — numeric (the ONLY numeric field, D-12; T-03-11) */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-zinc-600" htmlFor="mi-currentCensus">
+        <label
+          className="text-xs font-medium text-zinc-600"
+          htmlFor="mi-currentCensus"
+        >
           Current Census
         </label>
         <input
           id="mi-currentCensus"
           type="number"
-          value={inputs.currentCensus ?? ''}
+          value={inputs.currentCensus ?? ""}
           onChange={(e) =>
-            onChange({ ...inputs, currentCensus: e.target.valueAsNumber || null })
+            onChange({
+              ...inputs,
+              currentCensus: e.target.valueAsNumber || null,
+            })
           }
           disabled={disabled}
           placeholder="e.g. 130"
@@ -100,14 +111,19 @@ export function ManualInputsForm({ inputs, onChange, disabled }: Props) {
 
       {/* Type of Patient — text */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-zinc-600" htmlFor="mi-typeOfPatient">
+        <label
+          className="text-xs font-medium text-zinc-600"
+          htmlFor="mi-typeOfPatient"
+        >
           Type of Patient
         </label>
         <input
           id="mi-typeOfPatient"
           type="text"
-          value={inputs.typeOfPatient ?? ''}
-          onChange={(e) => onChange({ ...inputs, typeOfPatient: e.target.value })}
+          value={inputs.typeOfPatient ?? ""}
+          onChange={(e) =>
+            onChange({ ...inputs, typeOfPatient: e.target.value })
+          }
           disabled={disabled}
           placeholder="e.g. SNF, ALF"
           className="rounded border border-zinc-300 px-3 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-400"
@@ -116,17 +132,20 @@ export function ManualInputsForm({ inputs, onChange, disabled }: Props) {
 
       {/* Previous Coverage from Medelite — Yes/No select */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-zinc-600" htmlFor="mi-previousCoverage">
+        <label
+          className="text-xs font-medium text-zinc-600"
+          htmlFor="mi-previousCoverage"
+        >
           Previous Coverage from Medelite
         </label>
         <select
           id="mi-previousCoverage"
-          value={inputs.previousCoverage ?? ''}
+          value={inputs.previousCoverage ?? ""}
           onChange={(e) => {
             const v = e.target.value;
             onChange({
               ...inputs,
-              previousCoverage: v === 'Yes' || v === 'No' ? v : null,
+              previousCoverage: v === "Yes" || v === "No" ? v : null,
             });
           }}
           disabled={disabled}
@@ -140,14 +159,19 @@ export function ManualInputsForm({ inputs, onChange, disabled }: Props) {
 
       {/* Previous Provider Performance — text */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-zinc-600" htmlFor="mi-previousProviderPerformance">
+        <label
+          className="text-xs font-medium text-zinc-600"
+          htmlFor="mi-previousProviderPerformance"
+        >
           Previous Provider Performance
         </label>
         <input
           id="mi-previousProviderPerformance"
           type="text"
-          value={inputs.previousProviderPerformance ?? ''}
-          onChange={(e) => onChange({ ...inputs, previousProviderPerformance: e.target.value })}
+          value={inputs.previousProviderPerformance ?? ""}
+          onChange={(e) =>
+            onChange({ ...inputs, previousProviderPerformance: e.target.value })
+          }
           disabled={disabled}
           placeholder="e.g. Strong outcomes"
           className="rounded border border-zinc-300 px-3 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-400"
@@ -156,14 +180,19 @@ export function ManualInputsForm({ inputs, onChange, disabled }: Props) {
 
       {/* Medical Coverage — free-text (its own field, NOT part of Medelite History) */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-zinc-600" htmlFor="mi-medicalCoverage">
+        <label
+          className="text-xs font-medium text-zinc-600"
+          htmlFor="mi-medicalCoverage"
+        >
           Medical Coverage
         </label>
         <input
           id="mi-medicalCoverage"
           type="text"
-          value={inputs.medicalCoverage ?? ''}
-          onChange={(e) => onChange({ ...inputs, medicalCoverage: e.target.value })}
+          value={inputs.medicalCoverage ?? ""}
+          onChange={(e) =>
+            onChange({ ...inputs, medicalCoverage: e.target.value })
+          }
           disabled={disabled}
           placeholder="e.g. Optometry, PCP, Podiatry"
           className="rounded border border-zinc-300 px-3 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-400"
