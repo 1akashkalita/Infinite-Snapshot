@@ -800,7 +800,7 @@ function ReportBody({ vm }: { vm: ReportViewModel }) {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Reference report PDF (D-03)**
    - What we know: CONTEXT.md D-03 states the user will supply a reference PDF/image for the body label order and section structure.
