@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 // ReportPreview.tsx — Paper-like preview of the assembled report view-model.
 //
@@ -27,16 +27,12 @@
 //
 //   No assembleViewModel call here — the parent passes the assembled vm (RPT-02).
 
-import {
-  formatRating,
-  formatBeds,
-  formatLocation,
-} from '@/lib/report/format';
-import type { ReportViewModel } from '@/lib/report/view-model';
+import { formatRating, formatBeds, formatLocation } from "@/lib/report/format";
+import type { ReportViewModel } from "@/lib/report/view-model";
 
 interface Props {
   vm: ReportViewModel | null;
-  fetchState: 'idle' | 'loading' | 'success' | 'error';
+  fetchState: "idle" | "loading" | "success" | "error";
 }
 
 /**
@@ -48,7 +44,7 @@ interface Props {
  */
 export function ReportPreview({ vm, fetchState }: Props) {
   // Skeleton — show for idle (no search yet) and loading (fetch in progress)
-  if (fetchState === 'idle' || fetchState === 'loading') {
+  if (fetchState === "idle" || fetchState === "loading") {
     return (
       <div className="bg-white rounded shadow p-8 animate-pulse space-y-4">
         {/* Header block skeleton */}
@@ -117,55 +113,77 @@ export function ReportPreview({ vm, fetchState }: Props) {
 
         {/* 3. Census Capacity — certifiedBeds, null → "N/A" (D-10) */}
         <dt className="font-semibold text-zinc-700">Census Capacity</dt>
-        <dd className="text-zinc-900">{formatBeds(vm.facility.certifiedBeds)}</dd>
+        <dd className="text-zinc-900">
+          {formatBeds(vm.facility.certifiedBeds)}
+        </dd>
 
         {/* Separator */}
         <dt className="col-span-2 border-t my-1" aria-hidden="true" />
 
         {/* 4. Overall Star Rating */}
         <dt className="font-semibold text-zinc-700">Overall Star Rating</dt>
-        <dd className="text-zinc-900">{formatRating(vm.facility.starRatings.overall)}</dd>
+        <dd className="text-zinc-900">
+          {formatRating(vm.facility.starRatings.overall)}
+        </dd>
 
         {/* 5. Health Inspection Rating */}
-        <dt className="font-semibold text-zinc-700">Health Inspection Rating</dt>
-        <dd className="text-zinc-900">{formatRating(vm.facility.starRatings.healthInspection)}</dd>
+        <dt className="font-semibold text-zinc-700">
+          Health Inspection Rating
+        </dt>
+        <dd className="text-zinc-900">
+          {formatRating(vm.facility.starRatings.healthInspection)}
+        </dd>
 
         {/* 6. Staffing Rating */}
         <dt className="font-semibold text-zinc-700">Staffing Rating</dt>
-        <dd className="text-zinc-900">{formatRating(vm.facility.starRatings.staffing)}</dd>
+        <dd className="text-zinc-900">
+          {formatRating(vm.facility.starRatings.staffing)}
+        </dd>
 
         {/* 7. Quality of Resident Care — qm_rating (D-16, NOT longstay_qm_rating) */}
-        <dt className="font-semibold text-zinc-700">Quality of Resident Care</dt>
-        <dd className="text-zinc-900">{formatRating(vm.facility.starRatings.qualityCare)}</dd>
+        <dt className="font-semibold text-zinc-700">
+          Quality of Resident Care
+        </dt>
+        <dd className="text-zinc-900">
+          {formatRating(vm.facility.starRatings.qualityCare)}
+        </dd>
 
         {/* Separator */}
         <dt className="col-span-2 border-t my-1" aria-hidden="true" />
 
         {/* 8. EMR — manual input (Wave 4 wires the input; em-dash fallback for now) */}
         <dt className="font-semibold text-zinc-700">EMR</dt>
-        <dd className="text-zinc-900">{vm.manual.emr ?? '—'}</dd>
+        <dd className="text-zinc-900">{vm.manual.emr ?? "—"}</dd>
 
         {/* 9. Current Census — manual input */}
         <dt className="font-semibold text-zinc-700">Current Census</dt>
         <dd className="text-zinc-900">
-          {vm.manual.currentCensus != null ? String(vm.manual.currentCensus) : '—'}
+          {vm.manual.currentCensus != null
+            ? String(vm.manual.currentCensus)
+            : "—"}
         </dd>
 
         {/* 10. Type of Patient — manual input */}
         <dt className="font-semibold text-zinc-700">Type of Patient</dt>
-        <dd className="text-zinc-900">{vm.manual.typeOfPatient ?? '—'}</dd>
+        <dd className="text-zinc-900">{vm.manual.typeOfPatient ?? "—"}</dd>
 
         {/* 11. Medical Coverage — its own free-text field (not part of Medelite History) */}
         <dt className="font-semibold text-zinc-700">Medical Coverage</dt>
-        <dd className="text-zinc-900">{vm.manual.medicalCoverage ?? '—'}</dd>
+        <dd className="text-zinc-900">{vm.manual.medicalCoverage ?? "—"}</dd>
 
         {/* 12. Previous Provider Performance — manual input (INPT-01) */}
-        <dt className="font-semibold text-zinc-700">Previous Provider Performance</dt>
-        <dd className="text-zinc-900">{vm.manual.previousProviderPerformance ?? '—'}</dd>
+        <dt className="font-semibold text-zinc-700">
+          Previous Provider Performance
+        </dt>
+        <dd className="text-zinc-900">
+          {vm.manual.previousProviderPerformance ?? "—"}
+        </dd>
 
         {/* 13. Previous Coverage from Medelite — Yes/No (manual) */}
-        <dt className="font-semibold text-zinc-700">Previous Coverage from Medelite</dt>
-        <dd className="text-zinc-900">{vm.manual.previousCoverage ?? '—'}</dd>
+        <dt className="font-semibold text-zinc-700">
+          Previous Coverage from Medelite
+        </dt>
+        <dd className="text-zinc-900">{vm.manual.previousCoverage ?? "—"}</dd>
       </dl>
 
       {/* CMS data freshness note */}

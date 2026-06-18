@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 // ErrorBanner.tsx — Top-of-page alert banner for system / transient errors.
 //
@@ -9,8 +9,8 @@
 // T-03-08: Only getErrorPresentation().message (UI-authored copy) is rendered —
 //   no raw server message, no Zod internals reach the user.
 
-import type { CmsApiError } from '@/lib/cms/errors';
-import { getErrorPresentation } from '@/lib/ui/error-presentation';
+import type { CmsApiError } from "@/lib/cms/errors";
+import { getErrorPresentation } from "@/lib/ui/error-presentation";
 
 interface Props {
   /** Banner-kind CmsApiError to display. */

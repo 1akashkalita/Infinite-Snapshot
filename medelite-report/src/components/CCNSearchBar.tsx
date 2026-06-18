@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 // CCNSearchBar.tsx — CCN input form with client-side format pre-check and inline error display.
 //
@@ -16,10 +16,10 @@
 // T-03-08: Only getErrorPresentation().message (UI-authored copy) is rendered —
 //   no raw server message, no Zod internals.
 
-import { useState } from 'react';
-import type { CmsApiError } from '@/lib/cms/errors';
-import { normalizeCcn, isValidCcnFormat } from '@/lib/ui/ccn';
-import { getErrorPresentation } from '@/lib/ui/error-presentation';
+import { useState } from "react";
+import type { CmsApiError } from "@/lib/cms/errors";
+import { normalizeCcn, isValidCcnFormat } from "@/lib/ui/ccn";
+import { getErrorPresentation } from "@/lib/ui/error-presentation";
 
 interface Props {
   /** Called with the normalized CCN when the format is valid. */
@@ -45,7 +45,7 @@ interface Props {
  *   inlineError — parent-managed server error for inline display
  */
 export function CCNSearchBar({ onSearch, loading, inlineError }: Props) {
-  const [ccn, setCcn] = useState('');
+  const [ccn, setCcn] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -53,7 +53,7 @@ export function CCNSearchBar({ onSearch, loading, inlineError }: Props) {
     const normalized = normalizeCcn(ccn);
     if (!isValidCcnFormat(normalized)) {
       // D-05 / LOOK-02: gate BEFORE any fetch; never call onSearch for a bad format
-      setLocalError('CCN must be exactly 6 letters or numbers.');
+      setLocalError("CCN must be exactly 6 letters or numbers.");
       return;
     }
     // Format passed — clear local error and delegate to parent
@@ -67,7 +67,7 @@ export function CCNSearchBar({ onSearch, loading, inlineError }: Props) {
     localError ??
     (inlineError ? getErrorPresentation(inlineError).message : null);
 
-  const errorId = 'ccn-error';
+  const errorId = "ccn-error";
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-2" noValidate>
@@ -88,14 +88,14 @@ export function CCNSearchBar({ onSearch, loading, inlineError }: Props) {
           placeholder="Enter CCN (e.g. 686123)"
           maxLength={10}
           className={[
-            'flex-1 rounded-md border px-3 py-2 text-sm',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500',
+            "flex-1 rounded-md border px-3 py-2 text-sm",
+            "focus:outline-none focus:ring-2 focus:ring-blue-500",
             displayedError
-              ? 'border-red-400 bg-red-50'
-              : 'border-zinc-300 bg-white',
-          ].join(' ')}
+              ? "border-red-400 bg-red-50"
+              : "border-zinc-300 bg-white",
+          ].join(" ")}
           aria-describedby={displayedError ? errorId : undefined}
-          aria-invalid={displayedError ? 'true' : undefined}
+          aria-invalid={displayedError ? "true" : undefined}
           disabled={loading}
           autoComplete="off"
           spellCheck={false}
@@ -104,23 +104,19 @@ export function CCNSearchBar({ onSearch, loading, inlineError }: Props) {
           type="submit"
           disabled={loading}
           className={[
-            'rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors',
+            "rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors",
             loading
-              ? 'cursor-not-allowed bg-blue-300'
-              : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800',
-          ].join(' ')}
+              ? "cursor-not-allowed bg-blue-300"
+              : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800",
+          ].join(" ")}
         >
-          {loading ? 'Loading…' : 'Generate'}
+          {loading ? "Loading…" : "Generate"}
         </button>
       </div>
 
       {/* Inline error region — D-07: invalid_ccn and not_found surface here */}
       {displayedError && (
-        <p
-          id={errorId}
-          role="alert"
-          className="text-sm text-red-600 mt-1"
-        >
+        <p id={errorId} role="alert" className="text-sm text-red-600 mt-1">
           {displayedError}
         </p>
       )}
