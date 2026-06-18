@@ -95,3 +95,57 @@ describe("POST /api/export/pdf — valid ReportViewModel body (D-21)", () => {
     expect(body.error.message.length).toBeGreaterThan(0);
   });
 });
+
+// Phase 4: real PDF response tests (D-09 / SC#5).
+// This describe block is RED against the current 501 stub — it will become GREEN in Task 3
+// when the stub is replaced with renderToBuffer.
+describe("POST /api/export/pdf — Phase 4: real PDF response (D-09 / SC#5)", () => {
+  it("returns 200 for a valid ReportViewModel", async () => {
+    const resp = await POST(makeRequest(validVm));
+    expect(resp.status).toBe(200);
+  });
+
+  it("SC#5: Content-Type is application/pdf", async () => {
+    const resp = await POST(makeRequest(validVm));
+    expect(resp.headers.get("content-type")).toContain("application/pdf");
+  });
+
+  it("SC#5: Content-Disposition is attachment", async () => {
+    const resp = await POST(makeRequest(validVm));
+    expect(resp.headers.get("content-disposition")).toContain("attachment");
+  });
+
+  it("SC#5: Content-Disposition filename contains a slug of the facility name", async () => {
+    const resp = await POST(makeRequest(validVm));
+    const cd = resp.headers.get("content-disposition") ?? "";
+    // Kendall Lakes Healthcare and Rehab Center → "kendall-lakes-..."
+    expect(cd).toContain("kendall-lakes");
+  });
+
+  it("SC#5: Medicare URL appears in the PDF buffer (D-04 / PDF-02)", async () => {
+    const resp = await POST(makeRequest(validVm));
+    const buf = Buffer.from(await resp.arrayBuffer());
+    const url =
+      "https://www.medicare.gov/care-compare/details/nursing-home/686123";
+    expect(buf.toString("latin1")).toContain(url);
+  });
+
+  it("SC#2: static header strings appear in the PDF buffer (CLAUDE.md rule #2)", async () => {
+    const resp = await POST(makeRequest(validVm));
+    const buf = Buffer.from(await resp.arrayBuffer());
+    const latin1 = buf.toString("latin1");
+    expect(latin1).toContain("INFINITE");
+    expect(latin1).toContain("FACILITY ASSESSMENT SNAPSHOT");
+    expect(latin1).toContain("FL");
+  });
+
+  it("rule #2: facility name appears in body but platformLine header is intact", async () => {
+    const resp = await POST(makeRequest(validVm));
+    const buf = Buffer.from(await resp.arrayBuffer());
+    const latin1 = buf.toString("latin1");
+    // The header platformLine must be present:
+    expect(latin1).toContain("INFINITE");
+    // Facility name appears in the PDF body:
+    expect(latin1).toContain("KENDALL LAKES");
+  });
+});
