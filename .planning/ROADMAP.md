@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & CMS Data Layer** - Capture fixture, install packages, build Zod schema + typed CMS pipeline (completed 2026-06-17)
 - [ ] **Phase 2: API Routes, View Model & Config** - Server route handlers, shared view-model, static header, next.config
-- [ ] **Phase 3: Web UI, Core Flow & Deployment** - CCN search, manual inputs, live preview, error states, first Vercel deploy
+- [x] **Phase 3: Web UI, Core Flow & Deployment** - CCN search, manual inputs, live preview, error states, first Vercel deploy (completed 2026-06-18)
 - [ ] **Phase 4: PDF Export** - react-pdf document, server-side PDF route, Download PDF button, Medicare link
 - [ ] **Phase 5: Claims-Based Metrics** - 12 hospitalization/ED data points from CMS, suppressed-value handling, metrics in UI + PDF
 - [ ] **Phase 6: .docx Export** - Word document builder, export route, Download DOCX button
@@ -105,11 +105,11 @@ Plans:
 
 **Wave 3** *(core flow; depends on 03-02 — shared SnapshotApp/ReportPreview files)*
 
-- [ ] 03-03-PLAN.md — Core slice: `CCNSearchBar` + `ErrorBanner` + `ReportPreview` + the SnapshotApp fetch seam → CCN 686123 populates the preview; distinct inline/banner error states; body-layout reference confirm (LOOK-01/02/03, ERR-01/02)
+- [x] 03-03-PLAN.md — Core slice: `CCNSearchBar` + `ErrorBanner` + `ReportPreview` + the SnapshotApp fetch seam → CCN 686123 populates the preview; distinct inline/banner error states; body-layout reference confirm (LOOK-01/02/03, ERR-01/02)
 
 **Wave 4** *(manual inputs; depends on 03-03 — shared SnapshotApp/ReportPreview files)*
 
-- [ ] 03-04-PLAN.md — Final slice: `ManualInputsForm` (six fields + name override, D-12 types) wired to the live preview; body renders bound manual values + override-aware displayName (INPT-01/02/03, PREV-01, NAME-02)
+- [x] 03-04-PLAN.md — Final slice: `ManualInputsForm` (six fields + name override, D-12 types) wired to the live preview; body renders bound manual values + override-aware displayName (INPT-01/02/03, PREV-01, NAME-02)
 
 ### Phase 4: PDF Export
 
@@ -191,7 +191,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 |-------|----------------|--------|-----------|
 | 1. Foundation & CMS Data Layer | 3/3 | Complete   | 2026-06-17 |
 | 2. API Routes, View Model & Config | 3/3 | Complete   | 2026-06-17 |
-| 3. Web UI, Core Flow & Deployment | 2/4 | In Progress|  |
+| 3. Web UI, Core Flow & Deployment | 4/4 | Complete   | 2026-06-18 |
 | 4. PDF Export | 0/TBD | Not started | - |
 | 5. Claims-Based Metrics | 0/TBD | Not started | - |
 | 6. .docx Export | 0/TBD | Not started | - |

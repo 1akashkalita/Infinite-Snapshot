@@ -31,13 +31,13 @@ All v1 requirements below are committed scope for this milestone (required take-
 ### Facility Identity
 
 - [ ] **NAME-01**: Report defaults the facility name to the official CMS legal name
-- [ ] **NAME-02**: User can enter an optional custom name that overrides the CMS name on the report body only (the static branding header is never affected)
+- [x] **NAME-02**: User can enter an optional custom name that overrides the CMS name on the report body only (the static branding header is never affected)
 
 ### Manual Operational Inputs
 
 - [x] **INPT-01**: User can enter all of: EMR, Current Census, Type of Patient, **Medical Coverage** (free text, e.g. "Optometry, PCP, Podiatry" — a distinct field, not folded into "Medelite History"), and Previous Provider Performance
-- [ ] **INPT-02**: User can set "Previous Coverage from Medelite" via a Yes/No control
-- [ ] **INPT-03**: Manual inputs appear in the report body alongside the CMS data
+- [x] **INPT-02**: User can set "Previous Coverage from Medelite" via a Yes/No control
+- [x] **INPT-03**: Manual inputs appear in the report body alongside the CMS data
 
 ### Report Assembly & Branding
 
@@ -46,7 +46,7 @@ All v1 requirements below are committed scope for this milestone (required take-
 
 ### Live Preview
 
-- [ ] **PREV-01**: User sees an in-browser preview of the report that updates as they edit manual inputs, before downloading
+- [x] **PREV-01**: User sees an in-browser preview of the report that updates as they edit manual inputs, before downloading
 
 ### PDF Export
 
@@ -115,16 +115,16 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DATA-04 | Phase 2 | Pending |
 | DATA-05 | Phase 2 | Pending |
 | NAME-01 | Phase 2 | Pending |
-| NAME-02 | Phase 2 | Pending |
+| NAME-02 | Phase 2 | Complete |
 | RPT-01 | Phase 2 | Pending |
 | RPT-02 | Phase 2 | Pending |
 | LOOK-01 | Phase 3 | Complete |
 | LOOK-02 | Phase 3 | Complete |
 | LOOK-03 | Phase 3 | Complete |
 | INPT-01 | Phase 3 | Complete |
-| INPT-02 | Phase 3 | Pending |
-| INPT-03 | Phase 3 | Pending |
-| PREV-01 | Phase 3 | Pending |
+| INPT-02 | Phase 3 | Complete |
+| INPT-03 | Phase 3 | Complete |
+| PREV-01 | Phase 3 | Complete |
 | ERR-01 | Phase 3 | Complete |
 | ERR-02 | Phase 3 | Complete |
 | DEP-01 | Phase 3 | Complete |
