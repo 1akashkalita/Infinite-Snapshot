@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 3 context gathered
-last_updated: "2026-06-18T00:43:12.858Z"
+last_updated: "2026-06-18T01:20:21.237Z"
 last_activity: 2026-06-18
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 10
-  completed_plans: 7
+  completed_plans: 8
   percent: 29
 ---
 
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-06-15)
 
 Phase: 03 (web-ui-core-flow-deployment) — EXECUTING
 Phase: 03 (web-ui-core-flow-deployment) — NEXT
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-06-18
 
-Progress: [███████░░░] 70%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [███████░░░] 70%
 | Phase 01 P03 | 4 minutes | 2 tasks | 4 files |
 | Phase 02 P01 | 8 minutes | 2 tasks | 4 files |
 | Phase 03 P01 | 12 | 3 tasks | 6 files |
+| Phase 03 P02 | 30min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,8 @@ Recent decisions affecting current work:
 - NAME-02 (02-03): displayName = manual.nameOverride?.trim() || facility.providerName — static header is unaffected
 - D-25 (02-03): serverExternalPackages: ['@react-pdf/renderer'] added explicitly to next.config.ts; verified by next build in verify:full
 - D-21 (02-03): ReportViewModelSchema is the canonical Zod schema — PDF route and Phase 4/6 renderers validate against it
+- DEP-CLI (03-02): Vercel deploy performed via Vercel CLI instead of dashboard import — live URL https://infinite-snapshot.vercel.app HTTP/2 200, git auto-deploy on main + PR previews, Root Directory = medelite-report (DEP-01 + DEP-02 satisfied)
+- DEP-PROJ (03-02): Vercel project ID prj_hctB9zrT8TVabfcXim2dYvoqHgDH; production alias https://infinite-snapshot.vercel.app; per-deploy URLs have standard Vercel deployment-protection (401) — use the public alias for smoke tests
 
 ### Pending Todos
 
@@ -112,6 +115,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-18T00:43:12.822Z
-Stopped at: Phase 3 context gathered
+Last session: 2026-06-18T01:20:21.195Z
+Stopped at: Completed 03-02-PLAN.md — first Vercel deploy, live at https://infinite-snapshot.vercel.app
 Resume file: None

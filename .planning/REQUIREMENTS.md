@@ -76,8 +76,8 @@ All v1 requirements below are committed scope for this milestone (required take-
 
 ### Deployment
 
-- [ ] **DEP-01**: App is deployed to a live, working Vercel URL
-- [ ] **DEP-02**: A public code repository is available alongside the live URL
+- [x] **DEP-01**: App is deployed to a live, working Vercel URL
+- [x] **DEP-02**: A public code repository is available alongside the live URL
 
 ## v2 Requirements
 
@@ -127,8 +127,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PREV-01 | Phase 3 | Pending |
 | ERR-01 | Phase 3 | Complete |
 | ERR-02 | Phase 3 | Complete |
-| DEP-01 | Phase 3 | Pending |
-| DEP-02 | Phase 3 | Pending |
+| DEP-01 | Phase 3 | Complete |
+| DEP-02 | Phase 3 | Complete |
 | PDF-01 | Phase 4 | Pending |
 | PDF-02 | Phase 4 | Pending |
 | PDF-03 | Phase 4 | Pending |

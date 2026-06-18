@@ -101,7 +101,7 @@ Plans:
 
 **Wave 2** *(skeleton-first early deploy; depends on 03-01)*
 
-- [ ] 03-02-PLAN.md — Minimal deployable page + first Vercel deploy: thin `page.tsx` server shell + `SnapshotApp` two-pane skeleton + layout metadata, then push + Vercel connect (Root Dir = `medelite-report`) and verify live 200 / public repo (DEP-01/02)
+- [x] 03-02-PLAN.md — Minimal deployable page + first Vercel deploy: thin `page.tsx` server shell + `SnapshotApp` two-pane skeleton + layout metadata, then push + Vercel connect (Root Dir = `medelite-report`) and verify live 200 / public repo (DEP-01/02) — LIVE: https://infinite-snapshot.vercel.app
 
 **Wave 3** *(core flow; depends on 03-02 — shared SnapshotApp/ReportPreview files)*
 
@@ -191,7 +191,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 |-------|----------------|--------|-----------|
 | 1. Foundation & CMS Data Layer | 3/3 | Complete   | 2026-06-17 |
 | 2. API Routes, View Model & Config | 3/3 | Complete   | 2026-06-17 |
-| 3. Web UI, Core Flow & Deployment | 1/4 | In Progress|  |
+| 3. Web UI, Core Flow & Deployment | 2/4 | In Progress|  |
 | 4. PDF Export | 0/TBD | Not started | - |
 | 5. Claims-Based Metrics | 0/TBD | Not started | - |
 | 6. .docx Export | 0/TBD | Not started | - |
