@@ -36,6 +36,8 @@ export interface ManualInputs {
   medicalCoverage?: string;
   /** Whether this facility has had previous Medelite coverage. */
   previousCoverage?: "Yes" | "No" | null;
+  /** Previous provider performance notes (e.g. "Strong outcomes"). */
+  previousProviderPerformance?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -110,6 +112,7 @@ export const ReportViewModelSchema = z.object({
     typeOfPatient: z.string().optional(),
     medicalCoverage: z.string().optional(),
     previousCoverage: z.enum(["Yes", "No"]).nullable().optional(),
+    previousProviderPerformance: z.string().optional(),
   }),
 
   /** ISO string of when this snapshot was generated (injected by caller — D-12). */
@@ -176,6 +179,7 @@ export function assembleViewModel(
       typeOfPatient: manual.typeOfPatient,
       medicalCoverage: manual.medicalCoverage,
       previousCoverage: manual.previousCoverage,
+      previousProviderPerformance: manual.previousProviderPerformance,
     },
     generatedAt: generatedAtStr,
     // hospMetrics absent in Phase 2; Phase 5 adds it

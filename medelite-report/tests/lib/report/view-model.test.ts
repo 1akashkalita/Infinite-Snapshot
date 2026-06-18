@@ -152,6 +152,7 @@ describe("assembleViewModel — manual inputs", () => {
     expect(vm.manual.typeOfPatient).toBeUndefined();
     expect(vm.manual.medicalCoverage).toBeUndefined();
     expect(vm.manual.previousCoverage).toBeUndefined();
+    expect(vm.manual.previousProviderPerformance).toBeUndefined();
   });
 
   it("manual fields are populated when provided", () => {
@@ -163,6 +164,7 @@ describe("assembleViewModel — manual inputs", () => {
         typeOfPatient: "SNF",
         medicalCoverage: "Optometry, PCP, Podiatry",
         previousCoverage: "Yes",
+        previousProviderPerformance: "Strong outcomes",
       },
       FIXED_DATE_OBJ,
     );
@@ -171,6 +173,23 @@ describe("assembleViewModel — manual inputs", () => {
     expect(vm.manual.typeOfPatient).toBe("SNF");
     expect(vm.manual.medicalCoverage).toBe("Optometry, PCP, Podiatry");
     expect(vm.manual.previousCoverage).toBe("Yes");
+    expect(vm.manual.previousProviderPerformance).toBe("Strong outcomes");
+  });
+
+  it("previousProviderPerformance round-trips through ReportViewModelSchema (INPT-01)", () => {
+    const vm = assembleViewModel(
+      facility,
+      { previousProviderPerformance: "Strong outcomes" },
+      FIXED_DATE_OBJ,
+    );
+    expect(vm.manual.previousProviderPerformance).toBe("Strong outcomes");
+    const result = ReportViewModelSchema.safeParse(vm);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.manual.previousProviderPerformance).toBe(
+        "Strong outcomes",
+      );
+    }
   });
 });
 
