@@ -50,9 +50,9 @@ All v1 requirements below are committed scope for this milestone (required take-
 
 ### PDF Export
 
-- [ ] **PDF-01**: User can click "Download PDF" to trigger a direct browser download of a clean, print-ready PDF built with `@react-pdf/renderer`
-- [ ] **PDF-02**: The PDF includes a clickable hyperlink to `https://www.medicare.gov/care-compare/details/nursing-home/{CCN}` using the searched CCN
-- [ ] **PDF-03**: The downloaded PDF content matches what the live preview showed
+- [x] **PDF-01**: User can click "Download PDF" to trigger a direct browser download of a clean, print-ready PDF built with `@react-pdf/renderer`
+- [x] **PDF-02**: The PDF includes a clickable hyperlink to `https://www.medicare.gov/care-compare/details/nursing-home/{CCN}` using the searched CCN
+- [x] **PDF-03**: The downloaded PDF content matches what the live preview showed
 
 ### DOCX Export (bonus)
 
@@ -129,9 +129,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | ERR-02 | Phase 3 | Complete |
 | DEP-01 | Phase 3 | Complete |
 | DEP-02 | Phase 3 | Complete |
-| PDF-01 | Phase 4 | Pending |
-| PDF-02 | Phase 4 | Pending |
-| PDF-03 | Phase 4 | Pending |
+| PDF-01 | Phase 4 | Complete |
+| PDF-02 | Phase 4 | Complete |
+| PDF-03 | Phase 4 | Complete |
 | CLM-01 | Phase 5 | Pending |
 | CLM-02 | Phase 5 | Pending |
 | CLM-03 | Phase 5 | Pending |

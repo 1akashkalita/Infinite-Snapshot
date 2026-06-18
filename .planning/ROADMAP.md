@@ -129,7 +129,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 04-01-PLAN.md — Server render core: pure `slugFilename` helper (+ Wave 0 slug.test.ts), `ReportPDF` react-pdf document mirroring ReportPreview 1:1 with the clickable Medicare link, and the route swap from the 501 stub to real `renderToBuffer` (+ extended export-pdf.test.ts) — delivers PDF-02/PDF-03 and the server half of PDF-01
+- [x] 04-01-PLAN.md — Server render core: pure `slugFilename` helper (+ Wave 0 slug.test.ts), `ReportPDF` react-pdf document mirroring ReportPreview 1:1 with the clickable Medicare link, and the route swap from the 501 stub to real `renderToBuffer` (+ extended export-pdf.test.ts) — delivers PDF-02/PDF-03 and the server half of PDF-01
 
 **Wave 2** *(depends on 04-01 — consumes the live PDF route)*
 
@@ -199,7 +199,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Foundation & CMS Data Layer | 3/3 | Complete   | 2026-06-17 |
 | 2. API Routes, View Model & Config | 3/3 | Complete   | 2026-06-17 |
 | 3. Web UI, Core Flow & Deployment | 4/4 | Complete   | 2026-06-18 |
-| 4. PDF Export | 0/2 | Not started | - |
+| 4. PDF Export | 1/2 | In Progress|  |
 | 5. Claims-Based Metrics | 0/TBD | Not started | - |
 | 6. .docx Export | 0/TBD | Not started | - |
 | 7. Visualizations & Polish | 0/TBD | Not started | - |

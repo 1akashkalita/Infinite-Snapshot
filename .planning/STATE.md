@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 4 context gathered
-last_updated: "2026-06-18T07:53:48.129Z"
-last_activity: 2026-06-18 -- Phase 04 planning complete
+last_updated: "2026-06-18T08:18:54.361Z"
+last_activity: 2026-06-18
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
   percent: 43
 ---
 
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-15)
 
 **Core value:** Enter a CCN → instantly get an accurate, polished, downloadable facility snapshot.
-**Current focus:** Phase 4 — pdf export
+**Current focus:** Phase 04 — pdf-export
 
 ## Current Position
 
-Phase: 4
+Phase: 04 (pdf-export) — EXECUTING
 Phase: 03 (web-ui-core-flow-deployment) — NEXT
-Plan: Not started
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-06-18 -- Phase 04 planning complete
+Last activity: 2026-06-18
 
-Progress: [██████████] 100%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [██████████] 100%
 | Phase 02 P01 | 8 minutes | 2 tasks | 4 files |
 | Phase 03 P01 | 12 | 3 tasks | 6 files |
 | Phase 03 P02 | 30min | 3 tasks | 3 files |
+| Phase 04-pdf-export P01 | 35 | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,9 @@ Recent decisions affecting current work:
 - DEP-PROJ (03-02): Vercel project ID prj_hctB9zrT8TVabfcXim2dYvoqHgDH; production alias https://infinite-snapshot.vercel.app; per-deploy URLs have standard Vercel deployment-protection (401) — use the public alias for smoke tests
 - [Phase 03-03]: DEC-LAYOUT (03-03): Report body field order locked to reference-exact interleaved layout. CMS and manual fields interleaved, not grouped by source. Verbatim labels from reference PDF: 'Health Inspection' (not '...Rating'), 'Staffing' (not '...Rating'), 'Previous Provider Performance from Medelite' (with suffix). Two source-group separator rows removed.
 - [Phase 03-03]: DEC-ADDR-PASSTHROUGH (03-03): Address displayed as raw CMS pass-through string (street + city + state, no ZIP). Intentionally NOT normalized to reference's title-case/ordinal/abbreviated form. Rationale: address is a value governed by the API; lossy normalization risks corrupting regulated source data (CLAUDE.md rule #3). Reversible if normalized presentation later preferred.
+- [Phase ?]: Lossless conversion for Web Response API
+- [Phase ?]: Test assertions updated: Helvetica-Bold font resource + Document Title metadata (both uncompressed)
+- [Phase ?]: route.ts renamed to route.tsx in Phase 04-01
 
 ### Pending Todos
 
@@ -118,6 +122,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-18T07:20:00.732Z
+Last session: 2026-06-18T08:18:54.324Z
 Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-pdf-export/04-CONTEXT.md
+Resume file: None
