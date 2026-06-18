@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 3 context gathered
-last_updated: "2026-06-18T01:20:21.237Z"
+stopped_at: Completed 03-03-PLAN.md — reference-exact body layout applied, pushed to Vercel
+last_updated: "2026-06-18T01:52:14.504Z"
 last_activity: 2026-06-18
 progress:
   total_phases: 7
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-15)
 
 Phase: 03 (web-ui-core-flow-deployment) — EXECUTING
 Phase: 03 (web-ui-core-flow-deployment) — NEXT
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-06-18
 
@@ -96,6 +96,8 @@ Recent decisions affecting current work:
 - D-21 (02-03): ReportViewModelSchema is the canonical Zod schema — PDF route and Phase 4/6 renderers validate against it
 - DEP-CLI (03-02): Vercel deploy performed via Vercel CLI instead of dashboard import — live URL https://infinite-snapshot.vercel.app HTTP/2 200, git auto-deploy on main + PR previews, Root Directory = medelite-report (DEP-01 + DEP-02 satisfied)
 - DEP-PROJ (03-02): Vercel project ID prj_hctB9zrT8TVabfcXim2dYvoqHgDH; production alias https://infinite-snapshot.vercel.app; per-deploy URLs have standard Vercel deployment-protection (401) — use the public alias for smoke tests
+- [Phase 03-03]: DEC-LAYOUT (03-03): Report body field order locked to reference-exact interleaved layout. CMS and manual fields interleaved, not grouped by source. Verbatim labels from reference PDF: 'Health Inspection' (not '...Rating'), 'Staffing' (not '...Rating'), 'Previous Provider Performance from Medelite' (with suffix). Two source-group separator rows removed.
+- [Phase 03-03]: DEC-ADDR-PASSTHROUGH (03-03): Address displayed as raw CMS pass-through string (street + city + state, no ZIP). Intentionally NOT normalized to reference's title-case/ordinal/abbreviated form. Rationale: address is a value governed by the API; lossy normalization risks corrupting regulated source data (CLAUDE.md rule #3). Reversible if normalized presentation later preferred.
 
 ### Pending Todos
 
@@ -115,6 +117,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-18T01:20:21.195Z
-Stopped at: Completed 03-02-PLAN.md — first Vercel deploy, live at https://infinite-snapshot.vercel.app
+Last session: 2026-06-18T01:52:14.464Z
+Stopped at: Completed 03-03-PLAN.md — reference-exact body layout applied, pushed to Vercel
 Resume file: None

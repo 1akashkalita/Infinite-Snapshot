@@ -9,7 +9,7 @@ All v1 requirements below are committed scope for this milestone (required take-
 
 ### CCN Lookup
 
-- [ ] **LOOK-01**: User can enter a CCN in an input box and submit it to fetch that facility's data
+- [x] **LOOK-01**: User can enter a CCN in an input box and submit it to fetch that facility's data
 - [x] **LOOK-02**: App validates CCN format (6-character, treated as a string with leading zeros preserved) and shows a clear inline error for malformed input before any fetch
 - [x] **LOOK-03**: App distinguishes "invalid format" from "facility not found" (valid format but zero CMS results) with distinct, user-friendly messaging
 
@@ -118,7 +118,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | NAME-02 | Phase 2 | Pending |
 | RPT-01 | Phase 2 | Pending |
 | RPT-02 | Phase 2 | Pending |
-| LOOK-01 | Phase 3 | Pending |
+| LOOK-01 | Phase 3 | Complete |
 | LOOK-02 | Phase 3 | Complete |
 | LOOK-03 | Phase 3 | Complete |
 | INPT-01 | Phase 3 | Complete |
