@@ -38,7 +38,14 @@
 //     12. Staffing                → formatRating(vm.facility.starRatings.staffing)
 //     13. Quality of Resident Care → formatRating(vm.facility.starRatings.qualityCare)
 
-import { Document, Page, View, Text, Link, StyleSheet } from "@react-pdf/renderer";
+import {
+  Document,
+  Page,
+  View,
+  Text,
+  Link,
+  StyleSheet,
+} from "@react-pdf/renderer";
 import {
   formatRating,
   formatBeds,
@@ -193,17 +200,13 @@ export function ReportPDF({ vm }: { vm: ReportViewModel }) {
         {/* 6. Type of Patient — manual input */}
         <View style={styles.row}>
           <Text style={styles.label}>Type of Patient</Text>
-          <Text style={styles.value}>
-            {vm.manual.typeOfPatient ?? "—"}
-          </Text>
+          <Text style={styles.value}>{vm.manual.typeOfPatient ?? "—"}</Text>
         </View>
 
         {/* 7. Previous Coverage from Medelite — Yes/No (manual) */}
         <View style={styles.row}>
           <Text style={styles.label}>Previous Coverage from Medelite</Text>
-          <Text style={styles.value}>
-            {vm.manual.previousCoverage ?? "—"}
-          </Text>
+          <Text style={styles.value}>{vm.manual.previousCoverage ?? "—"}</Text>
         </View>
 
         {/* 8. Previous Provider Performance from Medelite — manual input (INPT-01) */}
@@ -219,9 +222,7 @@ export function ReportPDF({ vm }: { vm: ReportViewModel }) {
         {/* 9. Medical Coverage — free-text field (not part of Medelite History) */}
         <View style={styles.row}>
           <Text style={styles.label}>Medical Coverage</Text>
-          <Text style={styles.value}>
-            {vm.manual.medicalCoverage ?? "—"}
-          </Text>
+          <Text style={styles.value}>{vm.manual.medicalCoverage ?? "—"}</Text>
         </View>
 
         {/* 10. Overall Star Rating — CMS overall_rating */}
