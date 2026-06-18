@@ -93,8 +93,23 @@ Plans:
   4. User can override the facility name in a text field and see only the report body update — the static header block is unaffected
   5. The app is live at a public Vercel URL and the code is in a public GitHub repository; every error path has a corresponding test
 
-**Plans**: TBD
-**UI hint**: yes
+**Plans**: 4 plans
+Plans:
+**Wave 1**
+
+- [ ] 03-01-PLAN.md — Foundation: extend `ManualInputs`/`ReportViewModelSchema` with `previousProviderPerformance` (INPT-01) + the pure `src/lib/ui/` CCN pre-check and exhaustive error-kind mapping modules + their tests (LOOK-02/03, ERR-01/02)
+
+**Wave 2** *(skeleton-first early deploy; depends on 03-01)*
+
+- [ ] 03-02-PLAN.md — Minimal deployable page + first Vercel deploy: thin `page.tsx` server shell + `SnapshotApp` two-pane skeleton + layout metadata, then push + Vercel connect (Root Dir = `medelite-report`) and verify live 200 / public repo (DEP-01/02)
+
+**Wave 3** *(core flow; depends on 03-02 — shared SnapshotApp/ReportPreview files)*
+
+- [ ] 03-03-PLAN.md — Core slice: `CCNSearchBar` + `ErrorBanner` + `ReportPreview` + the SnapshotApp fetch seam → CCN 686123 populates the preview; distinct inline/banner error states; body-layout reference confirm (LOOK-01/02/03, ERR-01/02)
+
+**Wave 4** *(manual inputs; depends on 03-03 — shared SnapshotApp/ReportPreview files)*
+
+- [ ] 03-04-PLAN.md — Final slice: `ManualInputsForm` (six fields + name override, D-12 types) wired to the live preview; body renders bound manual values + override-aware displayName (INPT-01/02/03, PREV-01, NAME-02)
 
 ### Phase 4: PDF Export
 
@@ -176,7 +191,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 |-------|----------------|--------|-----------|
 | 1. Foundation & CMS Data Layer | 3/3 | Complete   | 2026-06-17 |
 | 2. API Routes, View Model & Config | 3/3 | Complete   | 2026-06-17 |
-| 3. Web UI, Core Flow & Deployment | 0/TBD | Not started | - |
+| 3. Web UI, Core Flow & Deployment | 0/4 | Not started | - |
 | 4. PDF Export | 0/TBD | Not started | - |
 | 5. Claims-Based Metrics | 0/TBD | Not started | - |
 | 6. .docx Export | 0/TBD | Not started | - |
