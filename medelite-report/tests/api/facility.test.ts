@@ -2,26 +2,67 @@ import { describe, expect, it, vi, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 import { GET } from "@/app/api/facility/route";
 import providerFixture from "../fixtures/provider-686123.json";
+import claimsFixture from "../fixtures/claims-686123.json";
+import averagesFixture from "../fixtures/averages-xcdc.json";
 
 // Tests for GET /api/facility route handler.
 // Uses NextRequest (non-dynamic route: ?ccn= query param, not path segment).
 // Stubs global fetch to avoid real CMS calls.
 // Covers D-01 (5-kind HTTP taxonomy), D-05 (leak invariant), D-22 (CCN gate).
+// Phase 5: covers the 3-dataset allSettled fan-out (D-07/D-08/D-09/D-10/SC#5).
 
 afterEach(() => vi.unstubAllGlobals());
 
-// Helper: build a stub fetch that resolves with the provider fixture
+// CMS API envelope wrappers for the three datasets
+const providerEnvelope = JSON.stringify({
+  count: 1,
+  results: [providerFixture[0]],
+});
+const claimsEnvelope = JSON.stringify({
+  count: 4,
+  results: claimsFixture,
+});
+const nationEnvelope = JSON.stringify({
+  count: 1,
+  results: [averagesFixture.NATION],
+});
+const flEnvelope = JSON.stringify({
+  count: 1,
+  results: [averagesFixture.FL],
+});
+
+/**
+ * Builds a URL-discriminating fetch mock.
+ * Each call is routed by dataset ID in the URL path:
+ *   4pq5-n9py → provider, ijh5-nb2v → claims, xcdc-v8bm → averages (NATION or FL).
+ */
+function stubFetchAllThree() {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockImplementation((url: string) => {
+      if (url.includes("4pq5-n9py")) {
+        return Promise.resolve(new Response(providerEnvelope, { status: 200 }));
+      }
+      if (url.includes("ijh5-nb2v")) {
+        return Promise.resolve(new Response(claimsEnvelope, { status: 200 }));
+      }
+      if (url.includes("xcdc-v8bm")) {
+        // Determine NATION vs FL by conditions[0][value] param
+        const u = new URL(url);
+        const val = u.searchParams.get("conditions[0][value]");
+        const body = val === "NATION" ? nationEnvelope : flEnvelope;
+        return Promise.resolve(new Response(body, { status: 200 }));
+      }
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    }),
+  );
+}
+
+// Helper: build a stub fetch that resolves with the provider fixture (only)
 function stubFetchHappy() {
   vi.stubGlobal(
     "fetch",
-    vi
-      .fn()
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({ count: 1, results: [providerFixture[0]] }),
-          { status: 200 },
-        ),
-      ),
+    vi.fn().mockResolvedValue(new Response(providerEnvelope, { status: 200 })),
   );
 }
 
@@ -201,30 +242,226 @@ describe("GET /api/facility", () => {
 
   // Lowercase alphanumeric CCN is uppercased before reaching fetch (D-22 normalization).
   // Uses an alphanumeric CCN so .toUpperCase() is NOT a no-op, and captures the actual
-  // condition value sent to fetch — proving normalization rather than just a 200.
+  // condition value sent to the provider fetch — proving normalization rather than just a 200.
+  // Note: the route now issues 4 fetches (provider + claims + NATION + FL) via allSettled.
+  // We assert on the provider fetch URL (4pq5-n9py) specifically, not on the total call count.
   it("uppercases a lowercase alphanumeric CCN before passing it to fetch", async () => {
     const capturedUrls: string[] = [];
     vi.stubGlobal(
       "fetch",
       vi.fn().mockImplementation((url: string) => {
         capturedUrls.push(url);
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({ count: 1, results: [providerFixture[0]] }),
-            { status: 200 },
-          ),
-        );
+        // Return valid responses for all three datasets so the handler completes
+        if (url.includes("4pq5-n9py")) {
+          return Promise.resolve(
+            new Response(providerEnvelope, { status: 200 }),
+          );
+        }
+        if (url.includes("ijh5-nb2v")) {
+          return Promise.resolve(new Response(claimsEnvelope, { status: 200 }));
+        }
+        if (url.includes("xcdc-v8bm")) {
+          const u = new URL(url);
+          const val = u.searchParams.get("conditions[0][value]");
+          const body = val === "NATION" ? nationEnvelope : flEnvelope;
+          return Promise.resolve(new Response(body, { status: 200 }));
+        }
+        return Promise.reject(new Error(`Unexpected URL: ${url}`));
       }),
     );
     const req = new NextRequest("http://localhost/api/facility?ccn=ab1234");
     const resp = await GET(req);
     expect(resp.status).toBe(200);
 
-    expect(capturedUrls.length).toBe(1);
-    const value = new URL(capturedUrls[0]).searchParams.get(
+    // Check that the provider fetch URL contained the uppercased CCN
+    const providerUrl = capturedUrls.find((u) => u.includes("4pq5-n9py"));
+    expect(providerUrl).toBeDefined();
+    const value = new URL(providerUrl!).searchParams.get(
       "conditions[0][value]",
     );
     expect(value).toBe("AB1234");
     expect(value).not.toBe("ab1234");
+  });
+
+  // ---------------------------------------------------------------------------
+  // Phase 5: 3-dataset allSettled fan-out (D-07/D-08/D-09/D-10/SC#5)
+  // ---------------------------------------------------------------------------
+
+  // Happy path (all 3 datasets succeed) → data + 12-item hospMetrics (CLM-01)
+  it("returns 200 with { data: FacilityData, hospMetrics: 12-item array } when all 3 datasets succeed", async () => {
+    stubFetchAllThree();
+    const req = new NextRequest("http://localhost/api/facility?ccn=686123");
+    const resp = await GET(req);
+    expect(resp.status).toBe(200);
+    const body = await resp.json();
+    // data must be the FacilityData (unchanged from Phase 2)
+    expect(body.data).toBeDefined();
+    expect(body.data.ccn).toBe("686123");
+    // hospMetrics must be a 12-item array
+    expect(Array.isArray(body.hospMetrics)).toBe(true);
+    expect(body.hospMetrics).toHaveLength(12);
+    // route must NOT call assembleViewModel (body.data is FacilityData, not a ReportViewModel)
+    expect(body.data).not.toHaveProperty("header");
+    expect(body.data).not.toHaveProperty("generatedAt");
+  });
+
+  // D-07: route uses Promise.allSettled (grep-level assertion via URL capture)
+  it("issues the claims + averages fetches after provider resolves (D-07 allSettled)", async () => {
+    const fetchedUrls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        fetchedUrls.push(url);
+        if (url.includes("4pq5-n9py")) {
+          return Promise.resolve(
+            new Response(providerEnvelope, { status: 200 }),
+          );
+        }
+        if (url.includes("ijh5-nb2v")) {
+          return Promise.resolve(new Response(claimsEnvelope, { status: 200 }));
+        }
+        if (url.includes("xcdc-v8bm")) {
+          const u = new URL(url);
+          const val = u.searchParams.get("conditions[0][value]");
+          const body = val === "NATION" ? nationEnvelope : flEnvelope;
+          return Promise.resolve(new Response(body, { status: 200 }));
+        }
+        return Promise.reject(new Error(`Unexpected URL: ${url}`));
+      }),
+    );
+    const req = new NextRequest("http://localhost/api/facility?ccn=686123");
+    await GET(req);
+    // Must have fetched provider + claims + NATION + FL = 4 fetch calls
+    expect(fetchedUrls.length).toBe(4);
+    expect(fetchedUrls.some((u) => u.includes("4pq5-n9py"))).toBe(true);
+    expect(fetchedUrls.some((u) => u.includes("ijh5-nb2v"))).toBe(true);
+    expect(fetchedUrls.some((u) => u.includes("xcdc-v8bm"))).toBe(true);
+  });
+
+  // D-10/SC#5: partial claims (only 3 of 4 measures) → status 200, hospMetrics still 12 items,
+  // missing measure's facility row has value null, its national/state average rows still carry values.
+  // This proves a fewer-than-4 claims count does NOT trigger the D-09 whole-section degrade.
+  it("D-10/SC#5: partial claims (3 measures) → 200, hospMetrics still 12 rows, missing facility value null but averages present", async () => {
+    // Only first 3 of the 4 claims rows (521, 522, 551 — missing 552)
+    const partialClaimsEnvelope = JSON.stringify({
+      count: 3,
+      results: claimsFixture.slice(0, 3),
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("4pq5-n9py")) {
+          return Promise.resolve(
+            new Response(providerEnvelope, { status: 200 }),
+          );
+        }
+        if (url.includes("ijh5-nb2v")) {
+          return Promise.resolve(
+            new Response(partialClaimsEnvelope, { status: 200 }),
+          );
+        }
+        if (url.includes("xcdc-v8bm")) {
+          const u = new URL(url);
+          const val = u.searchParams.get("conditions[0][value]");
+          const body = val === "NATION" ? nationEnvelope : flEnvelope;
+          return Promise.resolve(new Response(body, { status: 200 }));
+        }
+        return Promise.reject(new Error(`Unexpected URL: ${url}`));
+      }),
+    );
+    const req = new NextRequest("http://localhost/api/facility?ccn=686123");
+    const resp = await GET(req);
+    expect(resp.status).toBe(200);
+    const body = await resp.json();
+    // hospMetrics must still be 12 rows (no whole-section degrade — D-10/SC#5)
+    expect(Array.isArray(body.hospMetrics)).toBe(true);
+    expect(body.hospMetrics).toHaveLength(12);
+    // Find the rows for measure 552 (ED Visit, LT ED Visits National/State Avg.)
+    // Indices 9, 10, 11 correspond to 552 rows in METRIC_DEFINITIONS order
+    const edVisitFacilityRow = body.hospMetrics[9]; // "ED Visit" — facility 552
+    const edVisitNationRow = body.hospMetrics[10]; // "LT ED Visits National Avg."
+    const edVisitStateRow = body.hospMetrics[11]; // "LT ED Visits State Avg."
+    // Facility row for absent 552 must have value null (suppressed/absent)
+    expect(edVisitFacilityRow.value).toBeNull();
+    // National and state average rows must still carry their numeric values (independent of facility claims)
+    expect(typeof edVisitNationRow.value).toBe("number");
+    expect(typeof edVisitStateRow.value).toBe("number");
+  });
+
+  // D-09: claims fetch rejects → status 200, data present, hospMetrics absent
+  it("D-09: degrades (hospMetrics absent) when claims fetch rejects, data still present", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("4pq5-n9py")) {
+          return Promise.resolve(
+            new Response(providerEnvelope, { status: 200 }),
+          );
+        }
+        if (url.includes("ijh5-nb2v")) {
+          // Simulate network failure on claims
+          return Promise.reject(
+            new DOMException("The operation was aborted.", "AbortError"),
+          );
+        }
+        if (url.includes("xcdc-v8bm")) {
+          const u = new URL(url);
+          const val = u.searchParams.get("conditions[0][value]");
+          const body = val === "NATION" ? nationEnvelope : flEnvelope;
+          return Promise.resolve(new Response(body, { status: 200 }));
+        }
+        return Promise.reject(new Error(`Unexpected URL: ${url}`));
+      }),
+    );
+    const req = new NextRequest("http://localhost/api/facility?ccn=686123");
+    const resp = await GET(req);
+    expect(resp.status).toBe(200);
+    const body = await resp.json();
+    // data must still be present
+    expect(body.data).toBeDefined();
+    expect(body.data.ccn).toBe("686123");
+    // hospMetrics must be absent (degraded state — D-09)
+    expect(body.hospMetrics).toBeUndefined();
+  });
+
+  // D-09: averages fetch rejects → status 200, data present, hospMetrics absent
+  it("D-09: degrades (hospMetrics absent) when averages fetch rejects, data still present", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("4pq5-n9py")) {
+          return Promise.resolve(
+            new Response(providerEnvelope, { status: 200 }),
+          );
+        }
+        if (url.includes("ijh5-nb2v")) {
+          return Promise.resolve(new Response(claimsEnvelope, { status: 200 }));
+        }
+        if (url.includes("xcdc-v8bm")) {
+          // Simulate CMS non-200 on averages
+          return Promise.resolve(new Response("error", { status: 503 }));
+        }
+        return Promise.reject(new Error(`Unexpected URL: ${url}`));
+      }),
+    );
+    const req = new NextRequest("http://localhost/api/facility?ccn=686123");
+    const resp = await GET(req);
+    expect(resp.status).toBe(200);
+    const body = await resp.json();
+    expect(body.data).toBeDefined();
+    expect(body.hospMetrics).toBeUndefined();
+  });
+
+  // D-07: provider-info failure still returns existing 5-kind taxonomy (hard dependency unchanged)
+  it("D-07: provider-info failure still returns 502 network_error (existing taxonomy unchanged)", async () => {
+    stubFetchAbort();
+    const req = new NextRequest("http://localhost/api/facility?ccn=686123");
+    const resp = await GET(req);
+    expect(resp.status).toBe(502);
+    const body = await resp.json();
+    expect(body.error.kind).toBe("network_error");
+    // Must NOT have data or hospMetrics
+    expect(body.data).toBeUndefined();
+    expect(body.hospMetrics).toBeUndefined();
   });
 });

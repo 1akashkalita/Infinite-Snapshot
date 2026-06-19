@@ -14,7 +14,13 @@
 //   - export const runtime = 'nodejs' — D-25, future-proofs for react-pdf
 
 import type { NextRequest } from "next/server";
-import { fetchFacility } from "@/lib/cms/client";
+import {
+  fetchFacility,
+  fetchClaimsMeasures,
+  fetchAverages,
+} from "@/lib/cms/client";
+import { joinClaimsAndAverages } from "@/lib/cms/claims-mapper";
+import type { HospMetric } from "@/lib/cms/types";
 import { CmsError, assertNever } from "@/lib/cms/errors";
 
 // D-25: explicit Node.js runtime — required for routes that will later import @react-pdf/renderer
@@ -68,9 +74,47 @@ export async function GET(request: NextRequest) {
   }
 
   // 5. Full pipeline: fetch + validate + map (may throw CmsError)
+  //
+  // Fan-out architecture (D-07/D-08):
+  //   1. fetchFacility is the ONLY hard dependency — throws CmsError on failure (unchanged).
+  //   2. After provider info resolves, fan out to both bonus datasets via Promise.allSettled.
+  //      fetchAverages needs facility.state (only known after provider resolves — Pitfall 2).
+  //   3. Both allSettled results fulfilled → join 12 rows (even if claims < 4: per-row partial, D-10/SC#5).
+  //      Either allSettled result rejected → hospMetrics absent (whole-section degrade, D-09).
+  //
+  // Worst-case timing note: provider ~8s then parallel bonus ~8s = ~16s total;
+  // each fetch has its own AbortSignal.timeout(8000) so a hung claims/averages call
+  // degrades (D-09) rather than holding the request past the Vercel ~10s wall.
+  // In practice CMS responds in <2s so this is theoretical headroom only.
   try {
-    const facility = await fetchFacility(ccn);
-    return Response.json({ data: facility }, { status: 200 });
+    const facility = await fetchFacility(ccn); // hard dependency — throws on failure
+
+    // Fan out to claims + averages concurrently after provider info resolves (D-07/D-08).
+    // allSettled absorbs rejections — claims/averages failures never reach the CmsError switch.
+    const [claimsResult, averagesResult] = await Promise.allSettled([
+      fetchClaimsMeasures(ccn),
+      fetchAverages(facility.state),
+    ]);
+
+    // Determine hospMetrics: both fulfilled → 12-row join; either rejected → undefined (D-09).
+    // The gate is the allSettled fulfilled/rejected status ONLY — not the claims row count.
+    // A fewer-than-4 claims set yields per-row suppression (D-10/SC#5), not a degrade.
+    let hospMetrics: HospMetric[] | undefined;
+    if (
+      claimsResult.status === "fulfilled" &&
+      averagesResult.status === "fulfilled"
+    ) {
+      hospMetrics = joinClaimsAndAverages(
+        claimsResult.value,
+        averagesResult.value.nation,
+        averagesResult.value.state,
+      );
+    }
+    // Either rejected → hospMetrics stays undefined (D-09 graceful degrade).
+    // undefined is omitted from JSON automatically; the client treats absent hospMetrics
+    // as the degraded state and renders a "temporarily unavailable" line (D-09).
+
+    return Response.json({ data: facility, hospMetrics }, { status: 200 });
   } catch (err) {
     // Re-throw non-CmsError (unexpected JS exceptions — don't silently swallow)
     if (!(err instanceof CmsError)) throw err;
