@@ -496,9 +496,9 @@ PDF (`ReportPDF.tsx`) — append after row 13 as flexbox rows:
 
 ### Pitfall 4: Zod v4 `.length()` is Not on `z.array()`
 
-**What goes wrong:** Using `z.array(HospMetricSchema).length(12)` — in Zod v4, `.length()` is not a method on `ZodArray`. Use `.min(12).max(12)` or `.exact(12)` if you want to enforce length. However, for this phase `.optional()` (no length constraint) is safer because a partial fetch (fewer-than-4 facility rows) should degrade to the one-line message rather than fail schema validation.
+**What goes wrong:** Using `z.array(HospMetricSchema).length(12)` — in Zod v4, `.length()` is not a method on `ZodArray`. Use `.min(12).max(12)` or `.exact(12)` if you want to enforce length. However, for this phase `.optional()` (no length constraint) is safer because the **absent** (degraded) state — `hospMetrics` undefined when a fetch is rejected (D-09) — must still pass schema validation rather than fail it.
 
-**How to avoid:** Use `z.array(HospMetricSchema).optional()` without length enforcement. Let the mapper enforce the 12-row structure — if fewer than 4 claims rows arrive, return undefined (trigger the degraded line) rather than a partial 12-row array.
+**How to avoid:** Use `z.array(HospMetricSchema).optional()` without length enforcement. The mapper always builds the 12-row array when both fetches are fulfilled (a fewer-than-4 claims set yields per-row suppression on the absent measure, NOT a missing array — see Open Question 1 RESOLVED / D-10 / SC#5). Whole-section degrade (the absent `hospMetrics`) is the route's `Promise.allSettled`-rejection decision (D-09), not the mapper's.
 
 **Warning signs:** TypeScript or runtime error on `ReportViewModelSchema.safeParse`.
 
