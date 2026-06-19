@@ -167,7 +167,7 @@ Plans:
 
 **Wave 3** *(depends on 05-02)*
 
-- [ ] 05-03-PLAN.md — Server plumbing: real HospMetricSchema in ReportViewModelSchema + assembleViewModel param + GET /api/facility 3-dataset Promise.allSettled fan-out
+- [x] 05-03-PLAN.md — Server plumbing: real HospMetricSchema in ReportViewModelSchema + assembleViewModel param + GET /api/facility 3-dataset Promise.allSettled fan-out
 
 **Wave 4** *(depends on 05-03)*
 
@@ -217,6 +217,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. API Routes, View Model & Config | 3/3 | Complete   | 2026-06-17 |
 | 3. Web UI, Core Flow & Deployment | 4/4 | Complete   | 2026-06-18 |
 | 4. PDF Export | 2/2 | Complete   | 2026-06-18 |
-| 5. Claims-Based Metrics | 2/4 | In Progress|  |
+| 5. Claims-Based Metrics | 3/4 | In Progress|  |
 | 6. .docx Export | 0/TBD | Not started | - |
 | 7. Visualizations & Polish | 0/TBD | Not started | - |
