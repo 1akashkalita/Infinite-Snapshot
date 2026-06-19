@@ -15,7 +15,7 @@
 //         against it; Phase 4 renders straight from the parsed model.
 
 import { z } from "zod";
-import { type FacilityData } from "@/lib/cms/types";
+import { type FacilityData, type HospMetric } from "@/lib/cms/types";
 import { assembleHeader } from "@/lib/report/header";
 
 // ---------------------------------------------------------------------------
@@ -39,6 +39,27 @@ export interface ManualInputs {
   /** Previous provider performance notes (e.g. "Strong outcomes"). */
   previousProviderPerformance?: string;
 }
+
+// ---------------------------------------------------------------------------
+// HospMetricSchema — validates one of the 12 hospitalization/ED data points.
+// Added in Phase 5 (D-13). Must live inside ReportViewModelSchema because
+// POST /api/export/pdf re-validates the full posted view-model against it.
+// Field-for-field aligned with HospMetric interface from types.ts (Plan 02).
+// ---------------------------------------------------------------------------
+
+const HospMetricSchema = z.object({
+  /** Verbatim label from the reference template (D-04 — garbles preserved). */
+  label: z.string(),
+  /**
+   * Facility adjusted score or average value. null when CMS suppressed or absent.
+   * z.number().nullable() — rejects strings (even numeric ones) (T-05-PDF).
+   */
+  value: z.number().nullable(),
+  /** Formatter kind: "percent" | "rate" — drives which formatter runs at render time. */
+  unit: z.enum(["percent", "rate"]),
+  /** CMS footnote code. Present on facility rows with suppression; absent on average rows. */
+  footnoteCode: z.string().optional(),
+});
 
 // ---------------------------------------------------------------------------
 // ReportViewModelSchema — THE canonical Zod schema for the shared model (D-21).
@@ -119,10 +140,12 @@ export const ReportViewModelSchema = z.object({
   generatedAt: z.string(),
 
   /**
-   * Hospitalization/ED metrics from CMS claims datasets (Phase 5 fills this).
-   * Absent in Phase 2; schema accepts unknown so Phase 5 can extend without breakage.
+   * Hospitalization/ED metrics from CMS claims datasets (Phase 5).
+   * Optional — absent when the claims/averages fetch was rejected (D-09 degraded state).
+   * Lives inside this schema (D-13) so POST /api/export/pdf re-validates it automatically.
+   * No .min(12).max(12): Zod v4 has no array .length(); the mapper enforces the 12-row count.
    */
-  hospMetrics: z.unknown().optional(),
+  hospMetrics: z.array(HospMetricSchema).optional(),
 });
 
 /** Inferred TypeScript type from ReportViewModelSchema (D-21). */
@@ -139,14 +162,17 @@ export type ReportViewModel = z.infer<typeof ReportViewModelSchema>;
  * The timestamp is injected — never `new Date()` internally (D-12).
  * The name override flows to displayName (body) only — the static header is unaffected (NAME-02).
  *
- * @param facility — Validated CMS data (FacilityData).
- * @param manual   — User-supplied operational inputs.
- * @param generatedAt — Snapshot timestamp, injected by the caller (Date or ISO string).
+ * @param facility     — Validated CMS data (FacilityData).
+ * @param manual       — User-supplied operational inputs.
+ * @param generatedAt  — Snapshot timestamp, injected by the caller (Date or ISO string).
+ * @param hospMetrics  — Optional 12-row hospitalization/ED metrics (Phase 5, D-13).
+ *                       Absent when the claims/averages fetch was rejected (D-09 degraded state).
  */
 export function assembleViewModel(
   facility: FacilityData,
   manual: ManualInputs,
   generatedAt: Date | string,
+  hospMetrics?: HospMetric[],
 ): ReportViewModel {
   // RPT-01 / CLAUDE.md rule #2: assembleHeader takes ONLY a state code — no facility name.
   const header = assembleHeader(facility.state);
@@ -182,6 +208,7 @@ export function assembleViewModel(
       previousProviderPerformance: manual.previousProviderPerformance,
     },
     generatedAt: generatedAtStr,
-    // hospMetrics absent in Phase 2; Phase 5 adds it
+    // hospMetrics: passed through directly; undefined when not supplied (D-09 degraded state)
+    hospMetrics,
   };
 }

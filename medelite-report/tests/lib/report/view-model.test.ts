@@ -227,6 +227,61 @@ describe("assembleViewModel — manual inputs", () => {
   });
 });
 
+describe("ReportViewModelSchema — hospMetrics (D-13 / Phase 5)", () => {
+  // Build a valid HospMetric array (12 items) for schema testing.
+  const makeHospMetric = (i: number) => ({
+    label: `Metric ${i}`,
+    value: i % 3 === 0 ? null : i * 1.5,
+    unit: i < 6 ? ("percent" as const) : ("rate" as const),
+    footnoteCode: i % 3 === 0 ? "9" : undefined,
+  });
+  const hospMetrics12 = Array.from({ length: 12 }, (_, i) => makeHospMetric(i));
+
+  it("schema accepts a model with hospMetrics: 12-item array (D-13)", () => {
+    const vm = assembleViewModel(facility, {}, FIXED_DATE_OBJ, hospMetrics12);
+    const result = ReportViewModelSchema.safeParse(vm);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.hospMetrics).toHaveLength(12);
+    }
+  });
+
+  it("schema accepts a model with hospMetrics absent (degraded state valid — D-09/D-13)", () => {
+    const vm = assembleViewModel(facility, {}, FIXED_DATE_OBJ);
+    const result = ReportViewModelSchema.safeParse(vm);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.hospMetrics).toBeUndefined();
+    }
+  });
+
+  it("schema rejects a hospMetrics item with invalid unit (not percent|rate)", () => {
+    const badMetrics = [{ label: "Test", value: 1.5, unit: "bogus" }];
+    const vm = assembleViewModel(facility, {}, FIXED_DATE_OBJ);
+    const badVm = { ...vm, hospMetrics: badMetrics };
+    const result = ReportViewModelSchema.safeParse(badVm);
+    expect(result.success).toBe(false);
+  });
+
+  it("schema rejects a hospMetrics item where value is a string (not number|null)", () => {
+    const badMetrics = [{ label: "Test", value: "25.6%", unit: "percent" }];
+    const vm = assembleViewModel(facility, {}, FIXED_DATE_OBJ);
+    const badVm = { ...vm, hospMetrics: badMetrics };
+    const result = ReportViewModelSchema.safeParse(badVm);
+    expect(result.success).toBe(false);
+  });
+
+  it("assembleViewModel threads hospMetrics through when supplied as 4th arg", () => {
+    const vm = assembleViewModel(facility, {}, FIXED_DATE_OBJ, hospMetrics12);
+    expect(vm.hospMetrics).toEqual(hospMetrics12);
+  });
+
+  it("assembleViewModel yields hospMetrics === undefined when 4th arg is omitted", () => {
+    const vm = assembleViewModel(facility, {}, FIXED_DATE_OBJ);
+    expect(vm.hospMetrics).toBeUndefined();
+  });
+});
+
 describe("ReportViewModelSchema", () => {
   it("accepts a well-formed ReportViewModel", () => {
     const vm = assembleViewModel(facility, {}, FIXED_DATE_OBJ);
