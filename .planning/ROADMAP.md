@@ -155,7 +155,24 @@ Plans:
   4. The PDF export includes the claims metrics section with values and layout matching the web preview
   5. Tests cover: facility values (`ijh5-nb2v`) joined with `NATION`/state-`FL` averages (`xcdc-v8bm`), a suppressed measure, and fewer-than-4-measures (graceful partial data, no throws)
 
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+**Wave 1**
+
+- [ ] 05-01-PLAN.md — Data primitives: ClaimsRowSchema + AveragesRowSchema + 3 dataset constants + formatFootnote (with tests); blocking metastore ID re-confirm
+
+**Wave 2** *(depends on 05-01)*
+
+- [ ] 05-02-PLAN.md — Join + fetch: HospMetric type + joinClaimsAndAverages mapper (12 verbatim rows, per-row suppression) + fetchClaimsMeasures/fetchAverages
+
+**Wave 3** *(depends on 05-02)*
+
+- [ ] 05-03-PLAN.md — Server plumbing: real HospMetricSchema in ReportViewModelSchema + assembleViewModel param + GET /api/facility 3-dataset Promise.allSettled fan-out
+
+**Wave 4** *(depends on 05-03)*
+
+- [ ] 05-04-PLAN.md — Render slice: SnapshotApp wiring + 12 rows in ReportPreview + ReportPDF (degraded line) + PDF test + verify:full gate
+
 **UI hint**: yes
 
 ### Phase 6: .docx Export
@@ -200,6 +217,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. API Routes, View Model & Config | 3/3 | Complete   | 2026-06-17 |
 | 3. Web UI, Core Flow & Deployment | 4/4 | Complete   | 2026-06-18 |
 | 4. PDF Export | 2/2 | Complete   | 2026-06-18 |
-| 5. Claims-Based Metrics | 0/TBD | Not started | - |
+| 5. Claims-Based Metrics | 0/4 | Not started | - |
 | 6. .docx Export | 0/TBD | Not started | - |
 | 7. Visualizations & Polish | 0/TBD | Not started | - |
