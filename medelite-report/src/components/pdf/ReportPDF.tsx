@@ -51,8 +51,23 @@ import {
   formatBeds,
   formatLocation,
   formatDate,
+  formatPercent,
+  formatRate,
+  formatFootnote,
 } from "@/lib/report/format";
 import type { ReportViewModel } from "@/lib/report/view-model";
+import type { HospMetric } from "@/lib/cms/types";
+
+/**
+ * Renders a single HospMetric value applying D-10/D-11/D-12 rules (PDF mirror of ReportPreview):
+ *   null → formatFootnote(m.footnoteCode) (suppressed / absent)
+ *   unit === "percent" → formatPercent(m.value)
+ *   unit === "rate" → formatRate(m.value)
+ */
+function renderMetricValue(m: HospMetric): string {
+  if (m.value === null) return formatFootnote(m.footnoteCode);
+  return m.unit === "percent" ? formatPercent(m.value) : formatRate(m.value);
+}
 
 // ---------------------------------------------------------------------------
 // Styles — react-pdf StyleSheet (no Tailwind in PDF — web only)
@@ -258,6 +273,29 @@ export function ReportPDF({ vm }: { vm: ReportViewModel }) {
             {formatRating(vm.facility.starRatings.qualityCare)}
           </Text>
         </View>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* Hospitalization & ED metrics — Phase 5 (CLM-01/02/03)            */}
+        {/* Mirrors ReportPreview.tsx 1:1 (D-01/D-03/D-05).                  */}
+        {/* react-pdf has NO keyed Fragment — use key={i} on <View> (Pitfall 6). */}
+        {/* NO "use client" — this file is server-only (T-05-BUNDLE).        */}
+        {/* D-09 degraded: hospMetrics === undefined → single full-width row. */}
+        {/* D-10 per-row: null value → formatFootnote; averages still render. */}
+        {/* ---------------------------------------------------------------- */}
+        {vm.hospMetrics === undefined ? (
+          <View style={styles.row}>
+            <Text style={[styles.value, { flex: 2 }]}>
+              Hospitalization &amp; ED metrics are temporarily unavailable.
+            </Text>
+          </View>
+        ) : (
+          vm.hospMetrics.map((m, i) => (
+            <View key={i} style={styles.row}>
+              <Text style={styles.label}>{m.label}</Text>
+              <Text style={styles.value}>{renderMetricValue(m)}</Text>
+            </View>
+          ))
+        )}
 
         {/* ---------------------------------------------------------------- */}
         {/* FOOTER — CMS processing date + Medicare Care Compare link (D-04) */}

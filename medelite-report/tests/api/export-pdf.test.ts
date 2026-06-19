@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { inflateSync } from "zlib";
 import { POST } from "@/app/api/export/pdf/route";
 import { assembleViewModel } from "@/lib/report/view-model";
 import { toFacilityData } from "@/lib/cms/mapper";
 import { parseCMSRow } from "@/lib/cms/parse";
+import { joinClaimsAndAverages } from "@/lib/cms/claims-mapper";
+import { ClaimsRowSchema } from "@/lib/cms/claims-schema";
+import { AveragesRowSchema } from "@/lib/cms/averages-schema";
 import providerFixture from "../fixtures/provider-686123.json";
+import claimsFixture from "../fixtures/claims-686123.json";
+import averagesFixture from "../fixtures/averages-xcdc.json";
 
 // D-20/D-21: POST /api/export/pdf stub — Zod-validates incoming body.
 //   Bad shape → 400 { error: { kind: 'invalid_request', message } }
@@ -12,12 +18,67 @@ import providerFixture from "../fixtures/provider-686123.json";
 
 const FIXED_DATE = "2026-06-17T12:00:00Z";
 
+// Build the 12-item hospMetrics from the captured fixtures (CLAUDE.md rule #3).
+// joinClaimsAndAverages is the canonical source of the 12-row array (Plan 02).
+const parsedClaims = claimsFixture.map((row) => ClaimsRowSchema.parse(row));
+const NATION = AveragesRowSchema.parse(averagesFixture.NATION);
+const FL = AveragesRowSchema.parse(averagesFixture.FL);
+const hospMetrics = joinClaimsAndAverages(parsedClaims, NATION, FL);
+
 // Build a valid ReportViewModel from the captured fixture (D-11 / CLAUDE.md rule #3).
 const validVm = assembleViewModel(
   toFacilityData(parseCMSRow(providerFixture[0])),
   {},
   FIXED_DATE,
 );
+
+// Build a vm with 12-item hospMetrics for CLM-03 garble fidelity assertions in the PDF buffer.
+const validVmWithMetrics = assembleViewModel(
+  toFacilityData(parseCMSRow(providerFixture[0])),
+  {},
+  FIXED_DATE,
+  hospMetrics,
+);
+
+// ---------------------------------------------------------------------------
+// extractTextFromPdf — helper to read rendered text from a PDF buffer.
+//
+// react-pdf v4 stores page content in FlateDecode-compressed streams with
+// text as hex-encoded glyph codes in TJ operators:
+//   [<53686f7274> spacing ...] TJ  →  "Short..."
+// A raw latin1 scan does NOT find text (the page content stream is compressed).
+// This helper decompresses each stream and extracts the glyph codes.
+// Used for CLM-03 garble fidelity assertions (plan 05-04).
+// ---------------------------------------------------------------------------
+function extractTextFromPdf(pdfBuffer: Buffer): string {
+  const latin1 = pdfBuffer.toString("latin1");
+  const streamRegex = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+  const texts: string[] = [];
+  let match;
+  while ((match = streamRegex.exec(latin1)) !== null) {
+    const raw = Buffer.from(match[1], "latin1");
+    try {
+      const decompressed = inflateSync(raw).toString("binary");
+      // Extract ASCII text from hex-encoded TJ glyph sequences
+      const tjMatches = decompressed.matchAll(/\[([^\]]+)\]\s*TJ/g);
+      for (const tj of tjMatches) {
+        const hexParts = tj[1].matchAll(/<([0-9a-fA-F]+)>/g);
+        let chunk = "";
+        for (const h of hexParts) {
+          const hex = h[1];
+          for (let i = 0; i < hex.length; i += 2) {
+            const code = parseInt(hex.substring(i, i + 2), 16);
+            if (code >= 32 && code < 128) chunk += String.fromCharCode(code);
+          }
+        }
+        if (chunk) texts.push(chunk);
+      }
+    } catch {
+      // Non-compressed or malformed stream — skip
+    }
+  }
+  return texts.join(" ");
+}
 
 function makeRequest(body: unknown): Request {
   return new Request("http://localhost/api/export/pdf", {
@@ -141,5 +202,28 @@ describe("POST /api/export/pdf — Phase 4: real PDF response (D-09 / SC#5)", ()
     expect(latin1).toContain("KENDALL LAKES");
     // Buffer is a real PDF (non-empty, valid header)
     expect(buf.length).toBeGreaterThan(1000);
+  });
+
+  // CLM-03: garble fidelity in the PDF buffer — metric labels are rendered verbatim from the
+  // reference template (D-04). react-pdf v4 stores page content in FlateDecode-compressed
+  // streams (TJ glyph operators). extractTextFromPdf decompresses the stream and decodes the
+  // hex-encoded glyph codes to assert rendered text (same technique as the SC#2 Helvetica-Bold
+  // font check — uncompressed metadata differs from the compressed content stream).
+  // REQUIRED by plan 05-04 Task 2 acceptance criteria (CLM-03 garble fidelity in the PDF).
+  it("CLM-03: PDF rendered text contains verbatim metric label 'Short Term Hospitalization'", async () => {
+    const resp = await POST(makeRequest(validVmWithMetrics));
+    const buf = Buffer.from(await resp.arrayBuffer());
+    const text = extractTextFromPdf(buf);
+    // "Short Term Hospitalization" is the clean label for the first metric row
+    expect(text).toContain("Short Term Hospitalization");
+  });
+
+  it("CLM-03: PDF rendered text contains garbled label 'STR State National Avg. for Hospitalization'", async () => {
+    const resp = await POST(makeRequest(validVmWithMetrics));
+    const buf = Buffer.from(await resp.arrayBuffer());
+    const text = extractTextFromPdf(buf);
+    // "STR State National Avg. for Hospitalization" is a reference garble (D-04): the word
+    // "National" is spurious — it means the STATE average. Preserved verbatim per CLM-03.
+    expect(text).toContain("STR State National Avg. for Hospitalization");
   });
 });

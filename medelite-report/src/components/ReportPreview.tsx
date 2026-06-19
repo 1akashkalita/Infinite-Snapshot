@@ -35,13 +35,29 @@
 //
 //   No assembleViewModel call here — the parent passes the assembled vm (RPT-02).
 
+import React from "react";
 import {
   formatRating,
   formatBeds,
   formatLocation,
   formatDate,
+  formatPercent,
+  formatRate,
+  formatFootnote,
 } from "@/lib/report/format";
 import type { ReportViewModel } from "@/lib/report/view-model";
+import type { HospMetric } from "@/lib/cms/types";
+
+/**
+ * Renders a single HospMetric value applying D-10/D-11/D-12 rules:
+ *   null → formatFootnote(m.footnoteCode) (suppressed / absent)
+ *   unit === "percent" → formatPercent(m.value)
+ *   unit === "rate" → formatRate(m.value)
+ */
+function renderMetricValue(m: HospMetric): string {
+  if (m.value === null) return formatFootnote(m.footnoteCode);
+  return m.unit === "percent" ? formatPercent(m.value) : formatRate(m.value);
+}
 
 interface Props {
   vm: ReportViewModel | null;
@@ -191,6 +207,28 @@ export function ReportPreview({ vm, fetchState }: Props) {
         <dd className="text-zinc-900">
           {formatRating(vm.facility.starRatings.qualityCare)}
         </dd>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* Hospitalization & ED metrics — Phase 5 (CLM-01/02/03)            */}
+        {/* 12 rows (4 measures × facility/national/state) appended after     */}
+        {/* row 13 per D-03/D-05. Labels verbatim from reference (D-04).      */}
+        {/* D-09 degraded: hospMetrics === undefined → single concise line.   */}
+        {/* D-10 per-row: null value → formatFootnote; averages still render. */}
+        {/* React.Fragment key={m.label}: Pitfall 6 — keyed Fragment required */}
+        {/* so each dt/dd pair has a stable identity in the list.             */}
+        {/* ---------------------------------------------------------------- */}
+        {vm.hospMetrics === undefined ? (
+          <dt className="col-span-2 text-zinc-500 italic">
+            Hospitalization &amp; ED metrics are temporarily unavailable.
+          </dt>
+        ) : (
+          vm.hospMetrics.map((m) => (
+            <React.Fragment key={m.label}>
+              <dt className="font-semibold text-zinc-700">{m.label}</dt>
+              <dd className="text-zinc-900">{renderMetricValue(m)}</dd>
+            </React.Fragment>
+          ))
+        )}
       </dl>
 
       {/* CMS data freshness note — formatDate applies UTC timezone to avoid midnight off-by-one (D-13) */}
