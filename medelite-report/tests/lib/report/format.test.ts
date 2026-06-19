@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatBeds,
   formatDate,
+  formatFootnote,
   formatLocation,
   formatPercent,
   formatRate,
@@ -150,5 +151,35 @@ describe("formatDate", () => {
   it("accepts an ISO string and formats it correctly", () => {
     const result = formatDate("2026-06-17T12:00:00Z");
     expect(result).toBe("June 17, 2026");
+  });
+});
+
+describe("formatFootnote", () => {
+  it("returns 'Not reported (small sample)' for footnote code 9", () => {
+    expect(formatFootnote("9")).toBe("Not reported (small sample)");
+  });
+  it("returns 'Not available' for footnote code 7", () => {
+    expect(formatFootnote("7")).toBe("Not available");
+  });
+  it("returns 'Not submitted' for footnote code 10", () => {
+    expect(formatFootnote("10")).toBe("Not submitted");
+  });
+  it("returns 'Not enough data' for footnote code 1", () => {
+    expect(formatFootnote("1")).toBe("Not enough data");
+  });
+  it("returns 'Not enough data' for footnote code 2", () => {
+    expect(formatFootnote("2")).toBe("Not enough data");
+  });
+  it("returns 'Not enough data (annual measure)' for footnote code 28", () => {
+    expect(formatFootnote("28")).toBe("Not enough data (annual measure)");
+  });
+  it("returns 'Not available' for an unknown code (safe generic fallback)", () => {
+    expect(formatFootnote("99")).toBe("Not available");
+  });
+  it("returns 'Not available' for an empty string (no-footnote suppressed case)", () => {
+    expect(formatFootnote("")).toBe("Not available");
+  });
+  it("returns 'Not available' for undefined", () => {
+    expect(formatFootnote(undefined)).toBe("Not available");
   });
 });

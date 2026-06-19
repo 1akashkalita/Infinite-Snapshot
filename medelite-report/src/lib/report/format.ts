@@ -76,3 +76,25 @@ export function formatDate(value: Date | string): string {
     timeZone: "UTC",
   });
 }
+
+/**
+ * Maps a CMS footnote code to a human-readable suppression message (D-11).
+ * Codes traced to NH_Data_Dictionary Table 15 (via FEATURES.md, May 2026 / CLAUDE.md rule #3).
+ * Returns a safe generic message for unknown codes, empty strings, or absent footnote.
+ */
+// FOOTNOTE_MESSAGES — traced to NH_Data_Dictionary Table 15 (CLAUDE.md rule #3 / D-11).
+// FEATURES.md Table 15 is the intermediate citation.
+const FOOTNOTE_MESSAGES: Record<string, string> = {
+  "1": "Not enough data",
+  "2": "Not enough data",
+  "7": "Not available",
+  "9": "Not reported (small sample)",
+  "10": "Not submitted",
+  "28": "Not enough data (annual measure)",
+};
+const FOOTNOTE_FALLBACK = "Not available";
+
+export function formatFootnote(footnoteCode: string | undefined): string {
+  if (!footnoteCode || footnoteCode === "") return FOOTNOTE_FALLBACK;
+  return FOOTNOTE_MESSAGES[footnoteCode] ?? FOOTNOTE_FALLBACK;
+}

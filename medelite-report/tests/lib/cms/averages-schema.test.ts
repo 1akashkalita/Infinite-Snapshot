@@ -42,8 +42,12 @@ describe("AveragesRowSchema", () => {
     if (result.success) {
       // The hash-suffixed column for STR rehospitalization must pass through
       const row = result.data as Record<string, unknown>;
-      expect(row["percentage_of_short_stay_residents_who_were_rehospitalized__1d02"]).toBeDefined();
-      expect(row["percentage_of_short_stay_residents_who_were_rehospitalized__1d02"]).not.toBeUndefined();
+      expect(
+        row["percentage_of_short_stay_residents_who_were_rehospitalized__1d02"],
+      ).toBeDefined();
+      expect(
+        row["percentage_of_short_stay_residents_who_were_rehospitalized__1d02"],
+      ).not.toBeUndefined();
     }
   });
 
@@ -53,7 +57,9 @@ describe("AveragesRowSchema", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       const row = result.data as Record<string, unknown>;
-      expect(row["percentage_of_short_stay_residents_who_had_an_outpatient_em_d911"]).toBeDefined();
+      expect(
+        row["percentage_of_short_stay_residents_who_had_an_outpatient_em_d911"],
+      ).toBeDefined();
     }
   });
 

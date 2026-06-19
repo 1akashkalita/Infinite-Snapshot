@@ -14,19 +14,21 @@ const missingRequiredKey: unknown = {
 const suppressedRow: unknown = {
   cms_certification_number_ccn: "686123",
   measure_code: "521",
-  measure_description: "Percentage of short-stay residents who were rehospitalized after a nursing home admission",
+  measure_description:
+    "Percentage of short-stay residents who were rehospitalized after a nursing home admission",
   resident_type: "Short Stay",
-  adjusted_score: "",       // suppressed — must become null
-  footnote_for_score: "9",  // footnote code 9 = "Not reported (small sample)"
+  adjusted_score: "", // suppressed — must become null
+  footnote_for_score: "9", // footnote code 9 = "Not reported (small sample)"
   processing_date: "2026-05-01",
 };
 
 const zeroScoreRow: unknown = {
   cms_certification_number_ccn: "686123",
   measure_code: "521",
-  measure_description: "Percentage of short-stay residents who were rehospitalized after a nursing home admission",
+  measure_description:
+    "Percentage of short-stay residents who were rehospitalized after a nursing home admission",
   resident_type: "Short Stay",
-  adjusted_score: "0",      // real zero — must be preserved as 0, not null
+  adjusted_score: "0", // real zero — must be preserved as 0, not null
   footnote_for_score: "",
   processing_date: "2026-05-01",
 };
@@ -34,9 +36,10 @@ const zeroScoreRow: unknown = {
 const nonNumericRow: unknown = {
   cms_certification_number_ccn: "686123",
   measure_code: "521",
-  measure_description: "Percentage of short-stay residents who were rehospitalized after a nursing home admission",
+  measure_description:
+    "Percentage of short-stay residents who were rehospitalized after a nursing home admission",
   resident_type: "Short Stay",
-  adjusted_score: "abc",    // non-numeric string — must fail safeParse
+  adjusted_score: "abc", // non-numeric string — must fail safeParse
   footnote_for_score: "",
   processing_date: "2026-05-01",
 };
