@@ -1,5 +1,8 @@
-import { describe, expect, it } from "vitest";
-import { joinClaimsAndAverages } from "@/lib/cms/claims-mapper";
+import { describe, expect, it, vi } from "vitest";
+import {
+  joinClaimsAndAverages,
+  AVERAGE_COLUMN_DESCRIPTIONS,
+} from "@/lib/cms/claims-mapper";
 import { ClaimsRowSchema } from "@/lib/cms/claims-schema";
 import { AveragesRowSchema } from "@/lib/cms/averages-schema";
 import claimsFixture from "../../fixtures/claims-686123.json";
@@ -327,5 +330,67 @@ describe("HospMetric type contract", () => {
     expect(metrics[6]!.unit).toBe("rate");
     // Row 10 (552 facility) → rate
     expect(metrics[9]!.unit).toBe("rate");
+  });
+});
+
+// --- CR-01 regression: average-column substring matching must be unambiguous ---
+// The 522 substring "outpatient_em" was a PREFIX of the 552 column
+// ("...outpatient_emergency_department..."), so it matched two columns and resolveAverage
+// returned whichever came first in CMS column order — silently fabricating the wrong average
+// if columns were ever reordered. These tests lock the invariant: each substring matches exactly
+// one column, the result is order-independent, and a genuinely ambiguous match suppresses (null)
+// rather than guessing.
+
+describe("joinClaimsAndAverages — CR-01: unambiguous average-column matching", () => {
+  it("every AVERAGE_COLUMN_DESCRIPTIONS substring matches EXACTLY ONE column in NATION and FL", () => {
+    for (const [region, row] of [
+      ["NATION", NATION],
+      ["FL", FL],
+    ] as const) {
+      for (const [measureCode, substring] of Object.entries(
+        AVERAGE_COLUMN_DESCRIPTIONS,
+      )) {
+        const matches = Object.keys(row).filter((k) => k.includes(substring));
+        expect(
+          matches.length,
+          `measure ${measureCode} substring "${substring}" matched ${matches.length} columns in ${region}: ${matches.join(", ")}`,
+        ).toBe(1);
+      }
+    }
+  });
+
+  it("522 (STR ED Visits National Avg.) resolves to the short-stay percentage, not the 552 rate", () => {
+    const metrics = joinClaimsAndAverages(parsedClaims, NATION, FL);
+    // Index 4 = "STR ED Visits National Avg." (522 nation). The fixture short-stay ED % is 12.013574;
+    // the 552 long-stay ED rate is 1.798049 — they must never be confused.
+    expect(metrics[4]!.label).toBe("STR ED Visits National Avg.");
+    expect(metrics[4]!.value).toBeCloseTo(12.013574, 5);
+    expect(metrics[4]!.value).not.toBeCloseTo(1.798049, 5);
+  });
+
+  it("is independent of CMS column insertion order (reversed keys yield identical averages)", () => {
+    const reverse = <T extends object>(row: T): T =>
+      Object.fromEntries(Object.entries(row).reverse()) as T;
+    const base = joinClaimsAndAverages(parsedClaims, NATION, FL);
+    const reordered = joinClaimsAndAverages(
+      parsedClaims,
+      reverse(NATION),
+      reverse(FL),
+    );
+    expect(reordered.map((m) => m.value)).toEqual(base.map((m) => m.value));
+  });
+
+  it("suppresses (null) and warns when a substring matches more than one column", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // Inject a second column that also contains the 522 substring → genuine ambiguity.
+    const ambiguousNation = {
+      ...NATION,
+      duplicate_who_had_an_outpatient_col: "99.9",
+    } as typeof NATION;
+    const metrics = joinClaimsAndAverages(parsedClaims, ambiguousNation, FL);
+    // 522 nation (index 4) cannot be uniquely attributed → suppressed to null, never 99.9.
+    expect(metrics[4]!.value).toBeNull();
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
   });
 });

@@ -108,15 +108,21 @@ const METRIC_DEFINITIONS = [
 // hardcoded here or in the schema. The mapper scans AveragesRow keys at runtime for a key
 // that CONTAINS the target substring (D-14 / T-05-COL).
 //
-// Description substrings verified against tests/fixtures/averages-xcdc.json (CLAUDE.md rule #3):
+// Description substrings verified against tests/fixtures/averages-xcdc.json (CLAUDE.md rule #3).
+// INVARIANT: each substring must match EXACTLY ONE column in an AveragesRow. A substring that
+// matches two columns silently fabricates the wrong average (CR-01). In particular, "outpatient_em"
+// is a PREFIX of the 552 column ("...outpatient_emergency_department...") and so matches BOTH the
+// 522 percentage and the 552 rate — 522 therefore uses the short-stay-unique "who_had_an_outpatient".
+// resolveAverage() enforces the invariant at runtime (ambiguous match → null, never a guess), and
+// claims-mapper.test.ts asserts single-column uniqueness against the live fixture.
 //   521 → "percentage_of_short_stay_residents_who_were_rehospitalized__1d02" contains "rehospitalized"
-//   522 → "percentage_of_short_stay_residents_who_had_an_outpatient_em_d911" contains "outpatient_em"
+//   522 → "percentage_of_short_stay_residents_who_had_an_outpatient_em_d911" contains "who_had_an_outpatient"
 //   551 → "number_of_hospitalizations_per_1000_longstay_resident_days" contains "hospitalizations_per_1000_longstay"
 //   552 → "number_of_outpatient_emergency_department_visits_per_1000_l_de9d" contains
 //          "outpatient_emergency_department_visits_per_1000_l"
-const AVERAGE_COLUMN_DESCRIPTIONS: Record<string, string> = {
+export const AVERAGE_COLUMN_DESCRIPTIONS: Record<string, string> = {
   "521": "rehospitalized",
-  "522": "outpatient_em",
+  "522": "who_had_an_outpatient",
   "551": "hospitalizations_per_1000_longstay",
   "552": "outpatient_emergency_department_visits_per_1000_l",
 };
@@ -128,22 +134,39 @@ function resolveAverage(
   row: AveragesRow,
   descriptionSubstring: string,
 ): number | null {
-  for (const key of Object.keys(row)) {
-    if (key.includes(descriptionSubstring)) {
-      const rawValue = (row as Record<string, unknown>)[key];
-      if (rawValue === null || rawValue === undefined) return null;
-      if (typeof rawValue === "number") return rawValue;
-      if (typeof rawValue === "string") {
-        const trimmed = rawValue.trim();
-        if (trimmed === "") return null;
-        const n = Number(trimmed);
-        return Number.isFinite(n) ? n : null;
-      }
-      return null;
-    }
+  // Collect ALL columns whose key contains the substring. Scanning the first match (the old
+  // behavior) made the result depend on CMS column insertion order — an ambiguous substring
+  // would silently return whichever matching column happened to come first (CR-01).
+  const matchingKeys = Object.keys(row).filter((key) =>
+    key.includes(descriptionSubstring),
+  );
+
+  if (matchingKeys.length === 0) {
+    // Column not found — slug may have rotated or description doesn't match any key.
+    // Return null to trigger per-row suppression text (T-05-COL: never crash or fabricate).
+    return null;
   }
-  // Column not found — slug may have rotated or description doesn't match any key.
-  // Return null to trigger per-row suppression text (T-05-COL: never crash or fabricate).
+
+  if (matchingKeys.length > 1) {
+    // Ambiguous: the substring matched multiple columns. Refuse to guess which is correct —
+    // returning a value we cannot uniquely attribute would fabricate data. Fail loud (log)
+    // and suppress the row instead (data integrity over a plausible-but-wrong number).
+    console.warn(
+      `resolveAverage: substring "${descriptionSubstring}" matched ${matchingKeys.length} columns ` +
+        `(${matchingKeys.join(", ")}); suppressing to avoid fabricating an average.`,
+    );
+    return null;
+  }
+
+  const rawValue = (row as Record<string, unknown>)[matchingKeys[0]];
+  if (rawValue === null || rawValue === undefined) return null;
+  if (typeof rawValue === "number") return rawValue;
+  if (typeof rawValue === "string") {
+    const trimmed = rawValue.trim();
+    if (trimmed === "") return null;
+    const n = Number(trimmed);
+    return Number.isFinite(n) ? n : null;
+  }
   return null;
 }
 
