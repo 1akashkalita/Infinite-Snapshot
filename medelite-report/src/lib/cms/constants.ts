@@ -28,3 +28,28 @@ export const DATASET_PROVIDER_INFO = "4pq5-n9py";
  * NOT `federal_provider_number` (ARCHITECTURE.md used that from memory — do NOT use it).
  */
 export const CCN_FILTER_FIELD = "cms_certification_number_ccn";
+
+/**
+ * Medicare Claims Quality Measures dataset ID (ijh5-nb2v).
+ * Provides the 4 facility hospitalization/ED adjusted scores per CCN.
+ * Verified live via CMS metastore 2026-06-18; re-confirmed 2026-06-19 (HTTP 200,
+ * fields cms_certification_number_ccn / measure_code / adjusted_score / footnote_for_score
+ * all present). Captured in tests/fixtures/claims-686123.json (CLAUDE.md rule #3).
+ */
+export const DATASET_CLAIMS = "ijh5-nb2v";
+
+/**
+ * State/US Averages dataset ID (xcdc-v8bm).
+ * Provides national + state averages for the 4 hospitalization/ED measures.
+ * Verified live via CMS metastore 2026-06-18; re-confirmed 2026-06-19 (HTTP 200,
+ * state_or_nation field present; 4 measure average columns confirmed stable).
+ * Captured in tests/fixtures/averages-xcdc.json (CLAUDE.md rule #3).
+ */
+export const DATASET_AVERAGES = "xcdc-v8bm";
+
+/**
+ * The key field in xcdc-v8bm used to filter NATION / state rows.
+ * Verified in tests/fixtures/averages-xcdc.json (top-level key of each row: "NATION" / "FL").
+ * CLAUDE.md rule #3: traced to live CMS xcdc-v8bm response 2026-06-18.
+ */
+export const AVERAGES_FILTER_FIELD = "state_or_nation";
