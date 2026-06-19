@@ -159,7 +159,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 05-01-PLAN.md — Data primitives: ClaimsRowSchema + AveragesRowSchema + 3 dataset constants + formatFootnote (with tests); blocking metastore ID re-confirm
+- [x] 05-01-PLAN.md — Data primitives: ClaimsRowSchema + AveragesRowSchema + 3 dataset constants + formatFootnote (with tests); blocking metastore ID re-confirm
 
 **Wave 2** *(depends on 05-01)*
 
@@ -217,6 +217,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. API Routes, View Model & Config | 3/3 | Complete   | 2026-06-17 |
 | 3. Web UI, Core Flow & Deployment | 4/4 | Complete   | 2026-06-18 |
 | 4. PDF Export | 2/2 | Complete   | 2026-06-18 |
-| 5. Claims-Based Metrics | 0/4 | Not started | - |
+| 5. Claims-Based Metrics | 1/4 | In Progress|  |
 | 6. .docx Export | 0/TBD | Not started | - |
 | 7. Visualizations & Polish | 0/TBD | Not started | - |

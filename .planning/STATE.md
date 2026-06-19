@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 5 context gathered
-last_updated: "2026-06-19T06:57:36.727Z"
-last_activity: 2026-06-19 -- Phase 05 planning complete
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-06-19T07:45:15.115Z"
+last_activity: 2026-06-19
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 16
-  completed_plans: 12
+  completed_plans: 13
   percent: 57
 ---
 
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-15)
 
 **Core value:** Enter a CCN → instantly get an accurate, polished, downloadable facility snapshot.
-**Current focus:** Phase 5 — claims based metrics
+**Current focus:** Phase 05 — claims-based-metrics
 
 ## Current Position
 
-Phase: 5
+Phase: 05 (claims-based-metrics) — EXECUTING
 Phase: 03 (web-ui-core-flow-deployment) — NEXT
-Plan: Not started
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-06-19 -- Phase 05 planning complete
+Last activity: 2026-06-19
 
-Progress: [██████████] 100%
+Progress: [████████░░] 81%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [██████████] 100%
 | Phase 03 P02 | 30min | 3 tasks | 3 files |
 | Phase 04-pdf-export P01 | 35 | 3 tasks | 5 files |
 | Phase 04-pdf-export P02 | 10min | 2 tasks | 2 files |
+| Phase 05-claims-based-metrics P01 | 12 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Lossless conversion for Web Response API
 - [Phase ?]: Test assertions updated: Helvetica-Bold font resource + Document Title metadata (both uncompressed)
 - [Phase ?]: route.ts renamed to route.tsx in Phase 04-01
+- [Phase ?]: 05-01: AveragesRowSchema passthrough + formatFootnote Table-15 map added; nullableNum replicated inline in each new schema
 
 ### Pending Todos
 
@@ -124,6 +126,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-18T23:49:10.534Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-claims-based-metrics/05-CONTEXT.md
+Last session: 2026-06-19T07:45:15.073Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None

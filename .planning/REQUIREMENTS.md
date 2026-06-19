@@ -61,7 +61,7 @@ All v1 requirements below are committed scope for this milestone (required take-
 ### Claims-Based Metrics (bonus)
 
 - [ ] **CLM-01**: Report displays the 12 claims-based hospitalization/ED data points — the **4 measures** (short-stay rehospitalization %, short-stay outpatient ED %, long-stay hospitalizations per 1,000 resident-days, long-stay ED visits per 1,000 resident-days) each shown with **facility value + national avg + state avg**. Facility values come from Medicare Claims Quality Measures (`ijh5-nb2v`, display the **adjusted/risk-adjusted** score); national + state averages come from State US Averages (`xcdc-v8bm`, keyed `NATION`/`FL`). Dataset IDs resolved/verified via the CMS metastore.
-- [ ] **CLM-02**: Suppressed or "too few to report" claims values (e.g. `footnote_for_score` set, or empty-string score) render cleanly (e.g. "Not reported (small sample)") rather than as blanks, nulls, or errors
+- [x] **CLM-02**: Suppressed or "too few to report" claims values (e.g. `footnote_for_score` set, or empty-string score) render cleanly (e.g. "Not reported (small sample)") rather than as blanks, nulls, or errors
 - [ ] **CLM-03**: The metrics section matches the reference report's **labels and order** (including its exact, slightly garbled label text such as "STR State National Avg. for Hospitalization" and the bare "ED Visit" line); displayed **values come from the fixture/live API**, not the reference PDF's illustrative numbers
 
 ### Visualizations (bonus)
@@ -133,7 +133,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PDF-02 | Phase 4 | Complete |
 | PDF-03 | Phase 4 | Complete |
 | CLM-01 | Phase 5 | Pending |
-| CLM-02 | Phase 5 | Pending |
+| CLM-02 | Phase 5 | Complete |
 | CLM-03 | Phase 5 | Pending |
 | DOCX-01 | Phase 6 | Pending |
 | VIZ-01 | Phase 7 | Pending |
