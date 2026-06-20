@@ -59,7 +59,11 @@ describe("slugFilename", () => {
   // D-13: ext parameter — .docx extension
   it("D-13: slugFilename with .docx ext returns slug-Snapshot.docx", () => {
     expect(
-      slugFilename("Kendall Lakes Healthcare and Rehab Center", "686123", ".docx"),
+      slugFilename(
+        "Kendall Lakes Healthcare and Rehab Center",
+        "686123",
+        ".docx",
+      ),
     ).toBe("kendall-lakes-healthcare-and-rehab-center-Snapshot.docx");
   });
 
