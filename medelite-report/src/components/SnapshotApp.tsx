@@ -4,6 +4,10 @@
 //
 // Wave 3 (this plan) wires the fetch seam and error routing onto the Wave-2 skeleton shell.
 // Wave 4 will bind the ManualInputsForm that populates manualInputs.
+// Phase 7 (Plan 03) adds useDebounce: manualInputs → debouncedManualInputs (300ms) → vm.
+//   The debounce applies ONLY to the manualInputs→vm path (D-14).
+//   ManualInputsForm stays bound to raw manualInputs/setManualInputs for immediate UI feedback.
+//   handleSearch (the CMS fetch) is untouched — manual edits NEVER trigger a CMS re-fetch.
 //
 // Security:
 //   T-03-09: NEVER import @/lib/cms/client or @react-pdf/renderer here — server-only modules.
@@ -23,10 +27,12 @@
 //   3c. Network failure (catch): synthetic network_error, setFacilityData(null), setHospMetrics(undefined), setFetchState('error')
 //
 // D-11: manualInputs reset to {} ONLY on a successful fetch — preserves user work on error.
-// D-12: assembleViewModel(facilityData, manualInputs, new Date(), hospMetrics) — new Date() injected here.
+// D-12: assembleViewModel(facilityData, debouncedManualInputs, new Date(), hospMetrics) — new Date() injected here.
+// D-14: debouncedManualInputs trails manualInputs by 300ms — preview updates ~300ms after last keystroke.
 // Phase 5: hospMetrics captured from json.hospMetrics on success; cleared to undefined on every error/network branch.
 
 import { useState, useCallback } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import type { FacilityData, HospMetric } from "@/lib/cms/types";
 import type { CmsApiError } from "@/lib/cms/errors";
 import { CmsApiErrorSchema } from "@/lib/cms/errors";
@@ -132,11 +138,27 @@ export function SnapshotApp() {
     }
   }, []);
 
+  // ── Debounce manual inputs (D-14) ─────────────────────────────────────────
+  // Debounce the manualInputs→vm path: preview and export update ~300ms after
+  // the last keystroke, not on every keystroke. Uses explicit setTimeout/clearTimeout
+  // (NOT useDeferredValue — no guaranteed minimum delay in React 19 concurrent mode).
+  // ManualInputsForm stays bound to raw manualInputs/setManualInputs for immediate
+  // UI field feedback. handleSearch (CMS fetch) is untouched — manual edits NEVER
+  // trigger a CMS re-fetch (D-14 anti-pattern guard).
+  const debouncedManualInputs = useDebounce(manualInputs, 300);
+
   // ── View-model assembly ────────────────────────────────────────────────────
   // D-12: assembleViewModel gets new Date() from the caller, never internally
+  // D-14: assembles from debouncedManualInputs (not raw manualInputs) — the
+  //       same debounced vm drives both ReportPreview and ExportControls (RPT-02).
   // Phase 5: hospMetrics passed as the 4th arg — undefined = D-09 degraded state
   const vm = facilityData
-    ? assembleViewModel(facilityData, manualInputs, new Date(), hospMetrics)
+    ? assembleViewModel(
+        facilityData,
+        debouncedManualInputs,
+        new Date(),
+        hospMetrics,
+      )
     : null;
 
   // ── Error routing ──────────────────────────────────────────────────────────
@@ -182,8 +204,9 @@ export function SnapshotApp() {
 
         {/* ManualInputsForm — binds all six manual fields + name override (D-11/D-12/PREV-01) */}
         {/* disabled={!facilityData}: inputs are disabled until the first successful fetch (D-11) */}
-        {/* onChange={setManualInputs}: re-runs assembleViewModel on every keystroke (PREV-01)     */}
-        {/* No re-fetch on manual edits — only handleSearch fetches CMS data                       */}
+        {/* onChange={setManualInputs}: updates raw manualInputs on every keystroke (immediate    */}
+        {/*   field feedback); debouncedManualInputs → vm updates ~300ms later (D-14).           */}
+        {/* No re-fetch on manual edits — only handleSearch fetches CMS data (D-14 anti-pattern) */}
         <ManualInputsForm
           inputs={manualInputs}
           onChange={setManualInputs}
