@@ -177,11 +177,11 @@ export async function buildReportDocxBuffer(
   //      - rIdCmsLink must NOT already be present in the template rels (guard below fails loudly).
   const f = vm.facility;
   const footerP =
-    `<w:p><w:pPr><w:spacing w:before="200"/></w:pPr>` +
+    `<w:p><w:pPr><w:spacing w:before="200"/><w:tabs><w:tab w:val="right" w:pos="9600"/></w:tabs></w:pPr>` +
     `<w:hyperlink r:id="rIdCmsLink"><w:r><w:rPr><w:color w:val="1d4ed8"/><w:u w:val="single"/><w:rtl w:val="0"/></w:rPr>` +
     `<w:t xml:space="preserve">View official CMS profile on Medicare.gov</w:t></w:r></w:hyperlink>` +
-    `<w:r><w:rPr><w:color w:val="9ca3af"/><w:rtl w:val="0"/></w:rPr>` +
-    `<w:t xml:space="preserve">   CMS dataset processing date: ${xmlEsc(formatDate(f.processingDate))}</w:t></w:r></w:p>`;
+    `<w:r><w:rPr><w:color w:val="9ca3af"/><w:rtl w:val="0"/></w:rPr><w:tab/>` +
+    `<w:t xml:space="preserve">CMS dataset processing date: ${xmlEsc(formatDate(f.processingDate))}</w:t></w:r></w:p>`;
   xml = xml.replace("<w:sectPr>", footerP + "<w:sectPr>");
 
   // 9. Add the External hyperlink relationship for the CMS link to document.xml.rels.

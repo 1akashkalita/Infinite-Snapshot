@@ -245,6 +245,13 @@ describe("DOCX template-fill assertions", () => {
     expect(xml).toContain("<w:hyperlink");
   });
 
+  it("footer has a right tab stop at pos 9600 to right-align the processing date", async () => {
+    const { xml } = await getFilledXml(validVm);
+    // Fix 1: right-align footer date — paragraph must declare a right tab stop at 9600 dxa
+    expect(xml).toContain('w:val="right"');
+    expect(xml).toContain('w:pos="9600"');
+  });
+
   it("word/_rels/document.xml.rels contains rIdCmsLink External relationship pointing to careCompareUrl", async () => {
     const bytes = await buildReportDocxBuffer(validVm);
     const zip = await JSZip.loadAsync(bytes);
