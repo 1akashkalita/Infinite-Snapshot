@@ -293,12 +293,15 @@ export async function buildReportDocxBuffer(
   //    (Previously step 8 injected it before <w:sectPr> and step 10 inserted charts
   //    before the same <w:sectPr>, which placed charts AFTER footer. Fixed here.)
   const f = vm.facility;
-  const footerP =
-    `<w:p><w:pPr><w:spacing w:before="200"/><w:tabs><w:tab w:val="right" w:pos="9600"/></w:tabs></w:pPr>` +
-    `<w:hyperlink r:id="rIdCmsLink"><w:r><w:rPr><w:color w:val="1d4ed8"/><w:u w:val="single"/><w:rtl w:val="0"/></w:rPr>` +
-    `<w:t xml:space="preserve">View official CMS profile on Medicare.gov</w:t></w:r></w:hyperlink>` +
-    `<w:r><w:rPr><w:color w:val="9ca3af"/><w:rtl w:val="0"/></w:rPr><w:tab/>` +
-    `<w:t xml:space="preserve">CMS dataset processing date: ${xmlEsc(formatDate(f.processingDate))}</w:t></w:r></w:p>`;
+  // TURBOPACK-FOLD-01: build OOXML fragments as SINGLE template literals, never as
+  // `+`-chained adjacent string literals. The Next.js 16 Turbopack production minifier
+  // mis-constant-folds `+`-chains of string literals that contain interpolations
+  // (e.g. `<w:tblW w:w="${COL_DXA * 2}"/>` + `<w:tblLayout.../>` + …), silently DROPPING
+  // fragments and producing malformed XML that Word refuses to open. This only reproduces
+  // in `next build` output (Vercel), never in vitest/dev — so unit tests pass while
+  // production breaks. Single template literals fold correctly (the star-run path uses
+  // them and is unaffected). Do NOT re-split these into `+` chains.
+  const footerP = `<w:p><w:pPr><w:spacing w:before="200"/><w:tabs><w:tab w:val="right" w:pos="9600"/></w:tabs></w:pPr><w:hyperlink r:id="rIdCmsLink"><w:r><w:rPr><w:color w:val="1d4ed8"/><w:u w:val="single"/><w:rtl w:val="0"/></w:rPr><w:t xml:space="preserve">View official CMS profile on Medicare.gov</w:t></w:r></w:hyperlink><w:r><w:rPr><w:color w:val="9ca3af"/><w:rtl w:val="0"/></w:rPr><w:tab/><w:t xml:space="preserve">CMS dataset processing date: ${xmlEsc(formatDate(f.processingDate))}</w:t></w:r></w:p>`;
 
   // 9. Add the External hyperlink relationship for the CMS link to document.xml.rels.
   //    Guard: assert rIdCmsLink is not already present so we fail loudly if the template changes.
@@ -377,10 +380,10 @@ export async function buildReportDocxBuffer(
       const chartData = buildChartData(group);
 
       if (chartData.length === 0) {
-        // All-suppressed — empty cell with N/A text
+        // All-suppressed — empty cell with N/A text.
+        // TURBOPACK-FOLD-01: single template literal (see footerP comment).
         cellXmls.push(
-          `<w:tc><w:tcPr><w:tcW w:w="${COL_DXA}" w:type="dxa"/></w:tcPr>` +
-            `<w:p><w:r><w:t>N/A</w:t></w:r></w:p></w:tc>`,
+          `<w:tc><w:tcPr><w:tcW w:w="${COL_DXA}" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>N/A</w:t></w:r></w:p></w:tc>`,
         );
         continue;
       }
@@ -392,9 +395,9 @@ export async function buildReportDocxBuffer(
         group.label,
       );
       if (!svg || !svg.includes("<svg")) {
+        // TURBOPACK-FOLD-01: single template literal (see footerP comment).
         cellXmls.push(
-          `<w:tc><w:tcPr><w:tcW w:w="${COL_DXA}" w:type="dxa"/></w:tcPr>` +
-            `<w:p><w:r><w:t>N/A</w:t></w:r></w:p></w:tc>`,
+          `<w:tc><w:tcPr><w:tcW w:w="${COL_DXA}" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>N/A</w:t></w:r></w:p></w:tc>`,
         );
         continue;
       }
@@ -416,27 +419,14 @@ export async function buildReportDocxBuffer(
 
       // Build inline <w:drawing> OOXML for this chart cell.
       // EMU values use DISPLAY size (not RASTER size) — DOCX-EMU-01.
-      const drawingXml =
-        `<wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" distT="0" distB="0" distL="0" distR="0">` +
-        `<wp:extent cx="${CHART_EMU_W}" cy="${CHART_EMU_H}"/>` +
-        `<wp:effectExtent l="0" t="0" r="0" b="0"/>` +
-        `<wp:docPr id="${10 + i}" name="chart-${i}"/>` +
-        `<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">` +
-        `<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
-        `<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
-        `<pic:nvPicPr><pic:cNvPr id="${10 + i}" name="chart-${i}"/><pic:cNvPicPr/></pic:nvPicPr>` +
-        `<pic:blipFill>` +
-        `<a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/>` +
-        `<a:stretch><a:fillRect/></a:stretch>` +
-        `</pic:blipFill>` +
-        `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${CHART_EMU_W}" cy="${CHART_EMU_H}"/></a:xfrm>` +
-        `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>` +
-        `</pic:pic></a:graphicData></a:graphic></wp:inline>`;
+      // TURBOPACK-FOLD-01: single template literal (see footerP comment) — the previous
+      // `+`-chain form was silently corrupted by the production minifier (dropped fragments,
+      // only 1 of 4 <w:drawing> blocks survived in the deployed build).
+      const drawingXml = `<wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${CHART_EMU_W}" cy="${CHART_EMU_H}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="${10 + i}" name="chart-${i}"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${10 + i}" name="chart-${i}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${CHART_EMU_W}" cy="${CHART_EMU_H}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline>`;
 
+      // TURBOPACK-FOLD-01: single template literal (see footerP comment).
       cellXmls.push(
-        `<w:tc><w:tcPr><w:tcW w:w="${COL_DXA}" w:type="dxa"/></w:tcPr>` +
-          `<w:p><w:pPr><w:spacing w:before="60" w:after="60"/></w:pPr>` +
-          `<w:r><w:rPr/><w:drawing>${drawingXml}</w:drawing></w:r></w:p></w:tc>`,
+        `<w:tc><w:tcPr><w:tcW w:w="${COL_DXA}" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:spacing w:before="60" w:after="60"/></w:pPr><w:r><w:rPr/><w:drawing>${drawingXml}</w:drawing></w:r></w:p></w:tc>`,
       );
     }
 
@@ -458,20 +448,11 @@ export async function buildReportDocxBuffer(
 
     // DOCX-GRID-01: <w:tblGrid> with two <w:gridCol> entries + <w:tblLayout w:type="fixed"/>
     // prevents column collapse. Without tblGrid, Word ignores cell widths and collapses to 0.
-    const chartTable =
-      `<w:tbl>` +
-      `<w:tblPr>` +
-      `<w:tblStyle w:val="TableGrid"/>` +
-      `<w:tblW w:w="${COL_DXA * 2}" w:type="dxa"/>` +
-      `<w:tblLayout w:type="fixed"/>` +
-      `<w:tblLook w:val="0000"/>` +
-      `</w:tblPr>` +
-      `<w:tblGrid>` +
-      `<w:gridCol w:w="${COL_DXA}"/>` +
-      `<w:gridCol w:w="${COL_DXA}"/>` +
-      `</w:tblGrid>` +
-      tableRows +
-      `</w:tbl>`;
+    // TURBOPACK-FOLD-01: single template literal (see footerP comment) — the previous
+    // `+`-chain form was silently corrupted by the production minifier, dropping
+    // <w:tblW>/<w:tblLayout>/<w:tblLook>/</w:tblPr>/<w:tblGrid> fragments and producing
+    // malformed XML that Word refused to open. Do NOT re-split into `+` chains.
+    const chartTable = `<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="${COL_DXA * 2}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblLook w:val="0000"/></w:tblPr><w:tblGrid><w:gridCol w:w="${COL_DXA}"/><w:gridCol w:w="${COL_DXA}"/></w:tblGrid>${tableRows}</w:tbl>`;
 
     // Inject chart table + footer before <w:sectPr> (CR-01 callback form).
     // Order: chart grid → footer paragraph → <w:sectPr>
