@@ -191,7 +191,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 06-01-PLAN.md — Server foundations: generalize `slugFilename` with an `ext` param (D-13) + build `ReportDocx.ts`, the server-only docx twin of `ReportPDF` (static logo header, 13+12 rows, Medicare link)
+- [x] 06-01-PLAN.md — Server foundations: generalize `slugFilename` with an `ext` param (D-13) + build `ReportDocx.ts`, the server-only docx twin of `ReportPDF` (static logo header, 13+12 rows, Medicare link)
 
 **Wave 2** *(depends on 06-01 — consumes buildReportDocx + the generalized slug)*
 
@@ -229,5 +229,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Web UI, Core Flow & Deployment | 4/4 | Complete   | 2026-06-18 |
 | 4. PDF Export | 2/2 | Complete   | 2026-06-18 |
 | 5. Claims-Based Metrics | 4/4 | Complete   | 2026-06-19 |
-| 6. .docx Export | 0/3 | Planned | - |
+| 6. .docx Export | 1/3 | In Progress|  |
 | 7. Visualizations & Polish | 0/TBD | Not started | - |

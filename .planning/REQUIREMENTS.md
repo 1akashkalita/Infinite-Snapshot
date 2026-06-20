@@ -56,7 +56,7 @@ All v1 requirements below are committed scope for this milestone (required take-
 
 ### DOCX Export (bonus)
 
-- [ ] **DOCX-01**: User can download a `.docx` version of the report alongside the PDF, with matching content
+- [x] **DOCX-01**: User can download a `.docx` version of the report alongside the PDF, with matching content
 
 ### Claims-Based Metrics (bonus)
 
@@ -135,7 +135,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CLM-01 | Phase 5 | Complete |
 | CLM-02 | Phase 5 | Complete |
 | CLM-03 | Phase 5 | Complete |
-| DOCX-01 | Phase 6 | Pending |
+| DOCX-01 | Phase 6 | Complete |
 | VIZ-01 | Phase 7 | Pending |
 | VIZ-02 | Phase 7 | Pending |
 
