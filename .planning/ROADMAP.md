@@ -214,7 +214,20 @@ Plans:
   3. Manual input changes update the web preview within 300ms (debounced) with no full re-fetch of CMS data
   4. The live Vercel URL passes all checklist items: leading-zero CCN preserved, static header correct in PDF, suppressed fields render as "N/A", font renders correctly, charts visible in opened PDF, all error states trigger clean messages, .docx under 4 MB
 
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+**Wave 1**
+
+- [ ] 07-01-PLAN.md — Star-ratings slice (web + PDF + docx) + D-15 grouping foundation: shared colors/star-band/chart-utils modules, HospMetric measureKey/source schema+type+mapper, StarRating + PdfStarRating + colored docx star runs (VIZ-01/VIZ-02 star half, D-01..D-06, D-15)
+
+**Wave 2** *(depends on 07-01 — consumes measureKey/source + groupByMeasure + CHART_SERIES; shared ReportPreview/ReportPDF/ReportDocx files)*
+
+- [ ] 07-02-PLAN.md — Claims-charts slice (web recharts + PDF react-pdf-charts + docx PNGs): `@resvg/resvg-js` install behind a legitimacy checkpoint + serverExternalPackages, MiniBarChart + PdfMiniBarChart + chart-svg/rasterize lib, 4 charts added below the 12 verbatim rows (VIZ-01/VIZ-02 chart half, D-07..D-09, D-11, DOCX-01 size guard with images)
+
+**Wave 3** *(depends on 07-01 + 07-02 — smoke-tests the stars + charts; shared SnapshotApp file)*
+
+- [ ] 07-03-PLAN.md — Debounce + live-Vercel polish slice: `useDebounce` 300ms hook + SnapshotApp wiring (no CMS re-fetch), then the full "Looks Done But Isn't" SC#4 checklist on the live URL + `verify:full` phase gate (D-14, SC#3, SC#4)
+
 **UI hint**: yes
 
 ## Progress
@@ -230,4 +243,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. PDF Export | 2/2 | Complete   | 2026-06-18 |
 | 5. Claims-Based Metrics | 4/4 | Complete   | 2026-06-19 |
 | 6. .docx Export | 3/3 | Complete   | 2026-06-20 |
-| 7. Visualizations & Polish | 0/TBD | Not started | - |
+| 7. Visualizations & Polish | 0/3 | Not started | - |
