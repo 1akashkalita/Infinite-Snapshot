@@ -807,7 +807,9 @@ export async function POST(request: Request): Promise<Response> {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> All three questions below are engineering-judgment calls with concrete recommendations that are implemented in the Phase-6 plan actions (06-01 Task 2). The logo/hyperlink/table-width rendering choices are confirmed visually in the human UAT (06-03 Task 3).
 
 1. **Logo EMU sizing — exact display dimensions**
    - What we know: `IMediaTransformation.width/height` are in EMU; 1 inch = 914400 EMU; logo is 224×51 px at 96 DPI (9144 EMU/px = 2,048,256 × 466,344 EMU, roughly 2.24 × 0.51 inches)
