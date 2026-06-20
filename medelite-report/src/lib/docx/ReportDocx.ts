@@ -31,6 +31,7 @@ import {
   formatPercent,
   formatRate,
   formatFootnote,
+  formatDate,
 } from "@/lib/report/format";
 import { FACILITY_TEMPLATE_DOCX_BASE64 } from "@/lib/docx/template";
 import type { ReportViewModel } from "@/lib/report/view-model";
@@ -168,7 +169,42 @@ export async function buildReportDocxBuffer(
   const stateLine = vm.header.stateLine;
   xml = xml.split("{STATE}").join(xmlEsc(stateLine));
 
-  // 8. Write the modified XML back into the zip and re-serialize.
+  // 8. Inject a footer paragraph (clickable CMS hyperlink + processing date) immediately
+  //    before the body-level <w:sectPr> (there is exactly one in this template).
+  //    The hyperlink references rIdCmsLink, added to word/_rels/document.xml.rels below.
+  //    Guards:
+  //      - Template always has exactly one body-level <w:sectPr> (verified at build time).
+  //      - rIdCmsLink must NOT already be present in the template rels (guard below fails loudly).
+  const f = vm.facility;
+  const footerP =
+    `<w:p><w:pPr><w:spacing w:before="200"/></w:pPr>` +
+    `<w:hyperlink r:id="rIdCmsLink"><w:r><w:rPr><w:color w:val="1d4ed8"/><w:u w:val="single"/><w:rtl w:val="0"/></w:rPr>` +
+    `<w:t xml:space="preserve">View official CMS profile on Medicare.gov</w:t></w:r></w:hyperlink>` +
+    `<w:r><w:rPr><w:color w:val="9ca3af"/><w:rtl w:val="0"/></w:rPr>` +
+    `<w:t xml:space="preserve">   CMS dataset processing date: ${xmlEsc(formatDate(f.processingDate))}</w:t></w:r></w:p>`;
+  xml = xml.replace("<w:sectPr>", footerP + "<w:sectPr>");
+
+  // 9. Add the External hyperlink relationship for the CMS link to document.xml.rels.
+  //    Guard: assert rIdCmsLink is not already present so we fail loudly if the template changes.
+  const relsEntry = zip.file("word/_rels/document.xml.rels");
+  if (!relsEntry) {
+    throw new Error(
+      "Template is corrupt: word/_rels/document.xml.rels not found in the DOCX archive.",
+    );
+  }
+  let rels = await relsEntry.async("string");
+  if (rels.includes('Id="rIdCmsLink"')) {
+    throw new Error(
+      "Template already contains a relationship with Id=rIdCmsLink — guard triggered; template may have changed.",
+    );
+  }
+  rels = rels.replace(
+    "</Relationships>",
+    `<Relationship Id="rIdCmsLink" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${xmlEsc(f.careCompareUrl)}" TargetMode="External"/></Relationships>`,
+  );
+  zip.file("word/_rels/document.xml.rels", rels);
+
+  // 10. Write the modified XML back into the zip and re-serialize.
   zip.file("word/document.xml", xml);
 
   const bytes = await zip.generateAsync({ type: "uint8array" });
