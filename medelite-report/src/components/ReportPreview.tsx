@@ -51,6 +51,8 @@ import {
 import type { ReportViewModel } from "@/lib/report/view-model";
 import type { HospMetric } from "@/lib/cms/types";
 import { StarRating } from "@/components/StarRating";
+import { MiniBarChart } from "@/components/MiniBarChart";
+import { groupByMeasure } from "@/lib/report/chart-utils";
 
 /**
  * Renders a single HospMetric value applying D-10/D-11/D-12 rules:
@@ -209,6 +211,25 @@ export function ReportPreview({ vm, fetchState }: Props) {
           )}
         </tbody>
       </table>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* CHARTS — 4 mini grouped-bar charts (one per measure group), added    */}
+      {/* BELOW the 12 verbatim metric rows (D-03: CLM-03 rows are unchanged). */}
+      {/* Only rendered when hospMetrics is present (skipped on the degraded   */}
+      {/* undefined path). D-07: facility/national/state bars; D-08: legend.   */}
+      {/* ------------------------------------------------------------------ */}
+      {vm.hospMetrics && vm.hospMetrics.length > 0 && (
+        <section className="mt-4 space-y-2">
+          <h2 className="text-xs font-semibold text-zinc-600 uppercase tracking-wide">
+            Hospitalization &amp; ED Metrics — Charts
+          </h2>
+          <div className="grid grid-cols-2 gap-4">
+            {groupByMeasure(vm.hospMetrics).map((group, i) => (
+              <MiniBarChart key={i} group={group} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ------------------------------------------------------------------ */}
       {/* FOOTER — required clickable Medicare Care Compare link (rule #7) +            */}

@@ -42,6 +42,8 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 import { PdfStarRating } from "@/components/pdf/PdfStarRating";
+import { PdfMiniBarChart } from "@/components/pdf/PdfMiniBarChart";
+import { groupByMeasure } from "@/lib/report/chart-utils";
 import {
   formatBeds,
   formatLocation,
@@ -287,6 +289,19 @@ export function ReportPDF({ vm }: { vm: ReportViewModel }) {
             ))
           )}
         </View>
+
+        {/* CHARTS — 4 mini grouped-bar charts (one per measure group) added BELOW   */}
+        {/* the 12 verbatim metric rows (D-03: CLM-03 rows are UNCHANGED above).     */}
+        {/* D-07: facility/national/state bars. D-08: legend required in PDF chart.  */}
+        {/* VIZ-02: PdfMiniBarChart wraps recharts via react-pdf-charts adapter.     */}
+        {/* react-pdf has NO keyed Fragment — key the wrapping View.                 */}
+        {vm.hospMetrics && vm.hospMetrics.length > 0 && (
+          <View style={{ marginTop: 8 }}>
+            {groupByMeasure(vm.hospMetrics).map((group, i) => (
+              <PdfMiniBarChart key={i} group={group} />
+            ))}
+          </View>
+        )}
 
         {/* FOOTER — required clickable Medicare link (rule #7) + CMS dataset processing date */}
         <View style={styles.footer}>
