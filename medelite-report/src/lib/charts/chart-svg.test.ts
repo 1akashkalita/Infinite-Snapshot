@@ -2,13 +2,15 @@
 //
 // Tests run in node env (no jsdom). The core assertions:
 //  1. buildChartData null-filtering (D-09): null-valued slots are omitted from the output array.
-//  2. renderChartSvgString returns a non-empty string containing "<svg" (Open Question 1 resolved:
-//     recharts renderToStaticMarkup works server-side in node env with isAnimationActive=false).
+//  2. renderChartSvgString returns a non-empty string containing "<svg" (smoke test).
 //  3. Full group → 3 data points (Facility/National/State) with correct colors.
 //  4. Partial group → only non-null slots in the output.
 //  5. All-suppressed group → empty array [] → renderChartSvgString returns "".
-//
-// See RESEARCH.md Open Question 1 for the smoke-test rationale.
+//  6. Title: when label param provided, SVG contains the label text.
+//  7. No legend: SVG must NOT contain the word "legend" or separate swatch rects for series names
+//     (series identity is conveyed by X-axis category labels, not a legend block).
+//  8. X-axis category labels: SVG contains "Facility", "National", "State" text elements.
+//  9. Y-axis tick labels: SVG contains numeric tick labels.
 
 import { describe, expect, it } from "vitest";
 import { buildChartData, renderChartSvgString } from "./chart-svg";
@@ -134,27 +136,26 @@ describe("buildChartData", () => {
 });
 
 // ---------------------------------------------------------------------------
-// renderChartSvgString tests — Open Question 1 smoke test
+// renderChartSvgString tests
 // ---------------------------------------------------------------------------
 
 describe("renderChartSvgString", () => {
-  it("non-empty data → returns a non-empty string (Open Question 1)", () => {
+  it("non-empty data → returns a non-empty string", () => {
     const data = buildChartData(fullGroup);
     const svg = renderChartSvgString(data);
     expect(svg).toBeTruthy();
     expect(svg.length).toBeGreaterThan(0);
   });
 
-  it("non-empty data → SVG string contains '<svg' (recharts renderToStaticMarkup works server-side)", () => {
+  it("non-empty data → SVG string contains '<svg'", () => {
     const data = buildChartData(fullGroup);
     const svg = renderChartSvgString(data);
     expect(svg).toContain("<svg");
   });
 
-  it("non-empty data → SVG string contains bar geometry (rect or path elements)", () => {
+  it("non-empty data → SVG string contains bar geometry (<rect elements)", () => {
     const data = buildChartData(fullGroup);
     const svg = renderChartSvgString(data);
-    // recharts BarChart renders bars as <rect> elements in the SVG
     expect(svg).toMatch(/<rect|<path/);
   });
 
@@ -167,5 +168,86 @@ describe("renderChartSvgString", () => {
   it("accepts custom width and height without throwing", () => {
     const data = buildChartData(fullGroup);
     expect(() => renderChartSvgString(data, 200, 100)).not.toThrow();
+  });
+
+  // ---- Title ----
+  it("label param → SVG contains the label text as a title element", () => {
+    const data = buildChartData(fullGroup);
+    const svg = renderChartSvgString(
+      data,
+      300,
+      140,
+      "Short-Stay Rehospitalization",
+    );
+    expect(svg).toContain("Short-Stay Rehospitalization");
+    // The title must appear in a text element, not just as an attribute
+    expect(svg).toMatch(/<text[^>]*>Short-Stay Rehospitalization<\/text>/);
+  });
+
+  it("no label param → SVG does not contain an empty text element for title", () => {
+    const data = buildChartData(fullGroup);
+    const svg = renderChartSvgString(data, 300, 140);
+    // With no label, no title <text> element should be generated
+    // (the only text elements should be Y-axis ticks and X-axis labels)
+    expect(svg).not.toContain('font-weight="bold"');
+  });
+
+  // ---- X-axis category labels ----
+  it("SVG contains 'Facility' as an X-axis category label", () => {
+    const data = buildChartData(fullGroup);
+    const svg = renderChartSvgString(data);
+    expect(svg).toContain(">Facility<");
+  });
+
+  it("SVG contains 'National' as an X-axis category label", () => {
+    const data = buildChartData(fullGroup);
+    const svg = renderChartSvgString(data);
+    expect(svg).toContain(">National<");
+  });
+
+  it("SVG contains 'State' as an X-axis category label", () => {
+    const data = buildChartData(fullGroup);
+    const svg = renderChartSvgString(data);
+    expect(svg).toContain(">State<");
+  });
+
+  // ---- Y-axis tick labels ----
+  it("SVG contains Y-axis numeric tick label for 0", () => {
+    const data = buildChartData(fullGroup);
+    const svg = renderChartSvgString(data);
+    // Y-axis has a tick at 0
+    expect(svg).toContain(">0<");
+  });
+
+  it("SVG contains Y-axis numeric tick labels (3 ticks: 0, mid, max)", () => {
+    const data = buildChartData(fullGroup);
+    const svg = renderChartSvgString(data);
+    // There should be exactly 3 Y-axis tick text elements (via text-anchor="end")
+    const tickMatches = svg.match(/text-anchor="end"/g) ?? [];
+    expect(tickMatches.length).toBe(3);
+  });
+
+  // ---- No legend ----
+  it("SVG does NOT contain a separate legend block (legend removed)", () => {
+    const data = buildChartData(fullGroup);
+    const svg = renderChartSvgString(data, 300, 140);
+    // The old legend had a legendY variable placing swatch rects near the bottom.
+    // Verify no text element appears at or near the legend Y position (height-10 = 130).
+    // More robustly: verify 'Facility' only appears once (as an X-axis label, not also in a legend).
+    const facilityOccurrences = (svg.match(/Facility/g) ?? []).length;
+    expect(facilityOccurrences).toBe(1);
+    const nationalOccurrences = (svg.match(/National/g) ?? []).length;
+    expect(nationalOccurrences).toBe(1);
+    const stateOccurrences = (svg.match(/State/g) ?? []).length;
+    expect(stateOccurrences).toBe(1);
+  });
+
+  // ---- Baseline (X-axis line) ----
+  it("SVG contains a baseline X-axis line element", () => {
+    const data = buildChartData(fullGroup);
+    const svg = renderChartSvgString(data);
+    // Both Y-axis line and X-axis baseline should be present
+    const lineMatches = svg.match(/<line /g) ?? [];
+    expect(lineMatches.length).toBeGreaterThanOrEqual(2);
   });
 });

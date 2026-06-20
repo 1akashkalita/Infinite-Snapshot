@@ -33,27 +33,32 @@ import type { ChartDatum } from "@/lib/charts/chart-data";
  * server-side compatibility (Turbopack + @resvg/resvg-js).
  *
  * Layout:
- *   - Bars drawn left-to-right, one per datum (grouped bar chart, 1 bar per series).
- *   - Y-axis on the left, labels on the bottom, series name + color in a simple legend.
+ *   - Optional bold title at the top.
+ *   - Bars drawn left-to-right, one per datum (1 bar per series: Facility/National/State).
+ *   - Y-axis on the left with numeric tick labels, X-axis category labels below the bars.
+ *   - NO legend — series identity conveyed by X-axis labels and the chart title.
  *   - Bar height is proportional to value / maxValue * chartH (linear scale).
  *
  * @param data — ChartDatum array from buildChartData (filtered, non-null values only).
  * @param width — SVG width in px (default 300).
  * @param height — SVG height in px (default 140).
+ * @param label — Optional chart title rendered as a bold text element at the top of the SVG.
  * @returns SVG markup string with xmlns (non-empty if data is non-empty).
  */
 export function renderChartSvgString(
   data: ChartDatum[],
   width = 300,
   height = 140,
+  label = "",
 ): string {
   if (data.length === 0) return "";
 
   // Layout constants
   const PAD_LEFT = 36; // y-axis label area
   const PAD_RIGHT = 8;
-  const PAD_TOP = 8;
-  const PAD_BOTTOM = 40; // x labels + legend
+  const TITLE_H = label ? 16 : 0; // space for bold title at top
+  const PAD_TOP = TITLE_H + 8;
+  const PAD_BOTTOM = 20; // x labels below bars (no legend)
   const chartW = width - PAD_LEFT - PAD_RIGHT;
   const chartH = height - PAD_TOP - PAD_BOTTOM;
   const n = data.length;
@@ -68,7 +73,12 @@ export function renderChartSvgString(
   // Helper: value → Y coordinate (SVG y grows downward)
   const toY = (v: number) => PAD_TOP + chartH - Math.round((v / yMax) * chartH);
 
-  // ---- Bars ----
+  // ---- Optional bold title ----
+  const titleEl = label
+    ? `<text x="${PAD_LEFT}" y="${TITLE_H - 2}" font-size="10" font-weight="bold" fill="#111827">${escSvgText(label)}</text>`
+    : "";
+
+  // ---- Bars + X-axis category labels ----
   const bars = data
     .map((d, i) => {
       const x =
@@ -87,7 +97,7 @@ export function renderChartSvgString(
   const yTicks = [0, yMax / 2, yMax]
     .map((v) => {
       const y = toY(v);
-      const label = v % 1 === 0 ? String(v) : v.toFixed(1);
+      const label = v % 1 === 0 ? String(Math.round(v)) : v.toFixed(1);
       return (
         `<line x1="${PAD_LEFT - 4}" y1="${y}" x2="${PAD_LEFT}" y2="${y}" stroke="#9ca3af" stroke-width="1"/>` +
         `<text x="${PAD_LEFT - 6}" y="${y + 4}" font-size="8" text-anchor="end" fill="#6b7280">${escSvgText(label)}</text>`
@@ -95,30 +105,18 @@ export function renderChartSvgString(
     })
     .join("\n  ");
 
-  // ---- Legend (one item per datum, centered below x labels) ----
-  const legendY = height - 10;
-  const legendItemW = 60;
-  const totalLegendW = n * legendItemW;
-  const legendStartX = Math.round((width - totalLegendW) / 2);
-  const legend = data
-    .map((d, i) => {
-      const lx = legendStartX + i * legendItemW;
-      return (
-        `<rect x="${lx}" y="${legendY - 8}" width="10" height="8" fill="${escSvgAttr(d.color)}"/>` +
-        `<text x="${lx + 12}" y="${legendY}" font-size="8" fill="#374151">${escSvgText(d.name)}</text>`
-      );
-    })
-    .join("\n  ");
-
   // ---- Y-axis line ----
   const axisLine = `<line x1="${PAD_LEFT}" y1="${PAD_TOP}" x2="${PAD_LEFT}" y2="${PAD_TOP + chartH}" stroke="#9ca3af" stroke-width="1"/>`;
+  // ---- Baseline (X-axis) ----
+  const baseLine = `<line x1="${PAD_LEFT}" y1="${PAD_TOP + chartH}" x2="${PAD_LEFT + chartW}" y2="${PAD_TOP + chartH}" stroke="#9ca3af" stroke-width="1"/>`;
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" style="background:#ffffff">` +
+    (titleEl ? `\n  ${titleEl}` : "") +
     `\n  ${axisLine}` +
+    `\n  ${baseLine}` +
     `\n  ${yTicks}` +
     `\n  ${bars}` +
-    `\n  ${legend}` +
     `\n</svg>`
   );
 }

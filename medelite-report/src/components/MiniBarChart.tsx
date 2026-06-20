@@ -2,9 +2,9 @@
 
 // MiniBarChart.tsx — Web (browser) grouped bar chart for one hospitalization/ED measure group.
 //
-// Renders a recharts v2 BarChart with facility/national/state bars in blue/green/amber (D-08).
-// MUST include a <Legend> so readers know which color represents which series — the green bar
-// is series identity (National average), NOT a performance indicator (D-08 warning).
+// Renders a recharts v2 BarChart with facility/national/state bars in blue/green/amber.
+// Colors are identified by the X-axis labels (Facility/National/State) rather than a legend —
+// the legend key was removed per the design target (canonical web-preview look).
 //
 // D-09 suppression: an all-suppressed group (all values null) renders a small "N/A" indication,
 // NOT an empty chart frame. A partially-suppressed group renders only the available bars.
@@ -21,7 +21,6 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
   Cell,
   ResponsiveContainer,
 } from "recharts";
@@ -36,7 +35,8 @@ interface Props {
  * Web grouped-bar chart for one hospitalization/ED measure group.
  *
  * D-07: 3 bars per chart — Facility (blue) / National (green) / State (amber).
- * D-08: MUST carry a legend to disambiguate series identity from performance bands.
+ * Series identity is conveyed by the X-axis category labels (Facility/National/State),
+ * not a separate legend key. This matches the canonical target design.
  * D-09: all-suppressed → "N/A" span; partial → only present bars rendered.
  */
 export function MiniBarChart({ group }: Props) {
@@ -67,8 +67,6 @@ export function MiniBarChart({ group }: Props) {
           <XAxis dataKey="name" tick={{ fontSize: 9 }} />
           <YAxis tick={{ fontSize: 9 }} width={36} />
           <Tooltip formatter={formatter} />
-          {/* D-08: Legend REQUIRED — green "National" is a series identity, NOT "good" performance */}
-          <Legend wrapperStyle={{ fontSize: 9 }} />
           <Bar dataKey="value" name="Value">
             {data.map((entry, i) => (
               <Cell key={i} fill={entry.color} />

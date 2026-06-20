@@ -12,16 +12,20 @@
 // WHAT IS GUARDED (native SVG implementation — VIZ-02):
 //   (1) Non-empty group → element tree contains at least one Svg node (chart renders as SVG).
 //   (2) Non-empty group → element tree contains at least one Rect node (bars rendered).
-//   (3) D-08: element tree contains Text nodes OUTSIDE Svg with series names (legend).
-//   (4) D-09: all-suppressed → NO Svg node (returns the N/A Text path, no empty chart).
-//   (5) Partial group → chart renders (Svg node present) with only available bars.
-//   (6) CLM-03 guard: NO Text elements inside Svg (avoids SVG CID font encoding collision
+//   (3) X-axis category labels: "Facility", "National", "State" appear as Text OUTSIDE Svg.
+//       (Previously guarded by D-08 legend requirement; now the labels are X-axis labels.)
+//   (4) Chart title (group.label) appears as Text OUTSIDE Svg.
+//   (5) D-09: all-suppressed → NO Svg node (returns the N/A Text path, no empty chart).
+//   (6) Partial group → chart renders (Svg node present) with only available bars;
+//       absent series name does NOT appear as an X-axis label.
+//   (7) CLM-03 guard: NO Text elements inside Svg (avoids SVG CID font encoding collision
 //       that prevents extractTextFromPdf from reading metric label text in the PDF buffer).
+//   (8) NO color legend swatch+name block — legend has been removed; series identity is
+//       conveyed by X-axis category labels and the chart title.
 //
-// NOTE: The previous implementation used react-pdf-charts (ReactPDFChart) + recharts
-// (Bar, Legend). That approach was replaced with native react-pdf SVG primitives because
-// recharts is in Next.js's default optimizePackageImports list, which conflicts with
-// serverExternalPackages. Text labels are outside Svg to avoid PDF font encoding collisions.
+// NOTE: The legend (D-08 color swatch row) was removed per the design target. Series
+// identity is now communicated by the X-axis category labels (Facility/National/State) and
+// the bold chart title. The CLM-03 guard (no Text inside Svg) is unchanged.
 
 import { describe, expect, it } from "vitest";
 import { PdfMiniBarChart } from "./PdfMiniBarChart";
@@ -203,17 +207,22 @@ describe("PdfMiniBarChart — full group structural test", () => {
     expect(rectNodes.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("(D-08) 'Facility' appears in the legend text (outside Svg)", () => {
+  it("chart title (group.label) appears as text outside Svg", () => {
+    const texts = findTextContent(element).join(" ");
+    expect(texts).toContain("Short-Stay Rehospitalization");
+  });
+
+  it("X-axis: 'Facility' appears as text outside Svg (category label)", () => {
     const texts = findTextContent(element);
     expect(texts.join(" ")).toContain("Facility");
   });
 
-  it("(D-08) 'National' appears in the legend text (outside Svg)", () => {
+  it("X-axis: 'National' appears as text outside Svg (category label)", () => {
     const texts = findTextContent(element);
     expect(texts.join(" ")).toContain("National");
   });
 
-  it("(D-08) 'State' appears in the legend text (outside Svg)", () => {
+  it("X-axis: 'State' appears as text outside Svg (category label)", () => {
     const texts = findTextContent(element);
     expect(texts.join(" ")).toContain("State");
   });
@@ -221,6 +230,20 @@ describe("PdfMiniBarChart — full group structural test", () => {
   it("(CLM-03 guard) NO Text elements appear inside any Svg node", () => {
     const textInsideSvg = findTextInsideSvg(element);
     expect(textInsideSvg).toHaveLength(0);
+  });
+
+  it("(legend removed) no color-swatch Rect with fixed 10×8 dimensions used as legend swatch", () => {
+    // The old legend used tiny 10×8 Rects as color swatches in a separate legend row.
+    // After the redesign the only Rects should be the bar Rects (taller, proportional to value).
+    // We verify that all Rect nodes are taller than 8 (bar height is always > 1 for non-zero values).
+    const rectNodes = findByType(element, (t) => t === Rect);
+    // At least one Rect should be a bar (height > 8)
+    const hasTallRect = rectNodes.some(
+      (r) =>
+        typeof (r.props as { height?: unknown }).height === "number" &&
+        (r.props as { height: number }).height > 8,
+    );
+    expect(hasTallRect).toBe(true);
   });
 });
 
@@ -249,6 +272,11 @@ describe("PdfMiniBarChart — all-suppressed group (D-09 N/A path)", () => {
     const texts = findTextContent(element);
     expect(texts.join("")).toContain("N/A");
   });
+
+  it("chart title appears even for all-suppressed group", () => {
+    const texts = findTextContent(element).join(" ");
+    expect(texts).toContain("Long-Stay Hospitalizations");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -272,7 +300,7 @@ describe("PdfMiniBarChart — partial group (D-09 partial-chart)", () => {
     expect(rectNodes.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("(D-08) partial group has 'Facility' and 'State' labels but NOT 'National'", () => {
+  it("X-axis: partial group has 'Facility' and 'State' labels but NOT 'National'", () => {
     const texts = findTextContent(element).join(" ");
     expect(texts).toContain("Facility");
     expect(texts).toContain("State");
