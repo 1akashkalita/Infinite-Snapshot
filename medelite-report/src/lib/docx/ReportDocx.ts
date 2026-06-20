@@ -157,12 +157,20 @@ export async function buildReportDocxBuffer(
     const value = label in MAP ? MAP[label] : "—";
 
     // Replace only the second <w:t>…</w:t> (the value cell).
+    // IMPORTANT: both .replace() calls use the CALLBACK (function) form so that any
+    // `$` characters in the replacement string are treated literally. If the string
+    // form were used, JavaScript's replacement-pattern metacharacters ($&, $`, $',
+    // $$, $1…) would be re-expanded against the match, corrupting OOXML whenever a
+    // user input contains a dollar sign (e.g. "Cost: $5/visit"). The callback return
+    // value is always taken verbatim — no `$` interpretation (CR-01).
     const originalValTag = tMatches[1][0];
     const newValTag = originalValTag.replace(
       /(<w:t\b[^>]*>)[\s\S]*?(<\/w:t>)/,
-      `$1${xmlEsc(value)}$2`,
+      (_m, open, close) => `${open}${xmlEsc(value)}${close}`,
     );
-    return row.replace(originalValTag, newValTag);
+    // Second callback: prevent any `$` surviving in newValTag from being re-expanded
+    // when inserting newValTag into the full row string (CR-01).
+    return row.replace(originalValTag, () => newValTag);
   });
 
   // 7. Replace standalone {STATE} placeholder (appears once, outside the table, under the title).
@@ -182,7 +190,9 @@ export async function buildReportDocxBuffer(
     `<w:t xml:space="preserve">View official CMS profile on Medicare.gov</w:t></w:r></w:hyperlink>` +
     `<w:r><w:rPr><w:color w:val="9ca3af"/><w:rtl w:val="0"/></w:rPr><w:tab/>` +
     `<w:t xml:space="preserve">CMS dataset processing date: ${xmlEsc(formatDate(f.processingDate))}</w:t></w:r></w:p>`;
-  xml = xml.replace("<w:sectPr>", footerP + "<w:sectPr>");
+  // IMPORTANT: callback form so any `$` in footerP (e.g. from xmlEsc(formatDate(...)))
+  // is not interpreted as a replacement-pattern metacharacter (CR-01).
+  xml = xml.replace("<w:sectPr>", () => footerP + "<w:sectPr>");
 
   // 9. Add the External hyperlink relationship for the CMS link to document.xml.rels.
   //    Guard: assert rIdCmsLink is not already present so we fail loudly if the template changes.
@@ -198,10 +208,13 @@ export async function buildReportDocxBuffer(
       "Template already contains a relationship with Id=rIdCmsLink — guard triggered; template may have changed.",
     );
   }
-  rels = rels.replace(
-    "</Relationships>",
-    `<Relationship Id="rIdCmsLink" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${xmlEsc(f.careCompareUrl)}" TargetMode="External"/></Relationships>`,
-  );
+  // IMPORTANT: callback form so any `$` in xmlEsc(f.careCompareUrl) is not interpreted
+  // as a replacement-pattern metacharacter (CR-01). The careCompareUrl path segment
+  // comes from the CCN (z.string()), and while the URL refine checks protocol + hostname,
+  // it does not constrain the path — a `$` there would corrupt the rels XML if we used
+  // string-form replacement.
+  const relXml = `<Relationship Id="rIdCmsLink" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${xmlEsc(f.careCompareUrl)}" TargetMode="External"/>`;
+  rels = rels.replace("</Relationships>", () => relXml + "</Relationships>");
   zip.file("word/_rels/document.xml.rels", rels);
 
   // 10. Write the modified XML back into the zip and re-serialize.
