@@ -2,7 +2,7 @@
 phase: "06-docx-export"
 plan: "03"
 subsystem: "export-controls"
-tags: ["ExportControls", "docx", "pdf", "DOCX-01", "D-01", "D-02", "D-03", "D-04", "D-05", "checkpoint-fix", "logo-sizing", "preview-width"]
+tags: ["ExportControls", "docx", "pdf", "DOCX-01", "D-01", "D-02", "D-03", "D-04", "D-05", "checkpoint-fix", "logo-sizing", "preview-width", "DOCX-GRID-01", "column-collapse"]
 dependency_graph:
   requires:
     - "POST /api/export/docx — 06-02"
@@ -14,6 +14,7 @@ dependency_graph:
     - "SnapshotApp left pane wired to ExportControls (replaces DownloadPdfButton)"
     - "DOCX-01 fully closed at the code level — end-to-end browser download flow"
     - "Word-readable .docx: logo sized in px (not EMU) so wp:extent is sane"
+    - "Word-readable .docx: table columnWidths + FIXED layout so columns render correctly"
     - "Consistent US-Letter-width preview across all render states"
   affects:
     - "medelite-report/src/components/ExportControls.tsx"
@@ -23,6 +24,7 @@ dependency_graph:
     - "medelite-report/src/components/pdf/ReportPDF.tsx"
     - "medelite-report/src/app/layout.tsx"
     - "medelite-report/tests/api/export-docx.test.ts"
+    - "DOCX-GRID-01: table columnWidths + TableLayoutType.FIXED — Word column collapse fix"
 tech_stack:
   added: []
   patterns:
@@ -34,6 +36,8 @@ tech_stack:
     - "docx transformation in pixels (not EMU) — docx internally multiplies px×9525"
     - "JSZip regression test: unzip .docx and assert wp:extent cx < 10_000_000 EMU"
     - "US-Letter preview cap: mx-auto w-full max-w-[816px] on all three render-state divs"
+    - "docx Table columnWidths drives <w:tblGrid>; TableLayoutType.FIXED tells Word to honour explicit widths"
+    - "JSZip regression test DOCX-GRID-01: assert gridCol w > 1000 dxa each and sum ~9360"
 key_files:
   created:
     - "medelite-report/src/components/ExportControls.tsx"
@@ -66,7 +70,7 @@ metrics:
 
 ## One-liner
 
-Replaced `DownloadPdfButton` with `ExportControls` (PDF|DOCX toggle), fixed a Word-breaking EMU/px logo bug in the .docx builder, added a JSZip regression test that guards the image extent, relabeled the footer date, capped the preview to US-Letter width, and updated the page title — `npm run verify` fully green; Task 3 human UAT **awaiting re-verification** with the fixed .docx.
+Replaced `DownloadPdfButton` with `ExportControls` (PDF|DOCX toggle), fixed two Word-breaking bugs in the .docx builder (EMU/px logo sizing and table column-width collapse via `columnWidths` + `TableLayoutType.FIXED`), added JSZip regression tests for both bugs (DOCX-EMU-01, DOCX-GRID-01), relabeled the footer date, capped the preview to US-Letter width, and updated the page title — `npm run verify` fully green (261 tests); Task 3 human UAT **awaiting re-verification** with both bugs fixed.
 
 ## Tasks Completed
 
@@ -76,7 +80,7 @@ Replaced `DownloadPdfButton` with `ExportControls` (PDF|DOCX toggle), fixed a Wo
 | 2 | Swap ExportControls into SnapshotApp and run the phase gate | 0e86ed7 | `src/components/SnapshotApp.tsx` (modified) |
 | 3 | Human UAT — awaiting re-verification after checkpoint fix | — | See below |
 
-### Checkpoint fix commits (continuation agent)
+### Checkpoint fix commits (first continuation agent)
 
 | Fix | Commit | Files |
 |-----|--------|-------|
@@ -85,6 +89,13 @@ Replaced `DownloadPdfButton` with `ExportControls` (PDF|DOCX toggle), fixed a Wo
 | FIX 3: Relabel footer to "CMS dataset processing date" | 23f870f | `ReportPreview.tsx`, `ReportPDF.tsx`, `ReportDocx.ts` |
 | FIX 4: Cap preview to US-Letter width | 080ce9d | `src/components/ReportPreview.tsx` |
 | FIX 5: Set page title to "Infinite — Medelite" | e1c98f9 | `src/app/layout.tsx` |
+
+### Second checkpoint fix commits (second continuation agent — DOCX-GRID-01)
+
+| Fix | Commit | Files |
+|-----|--------|-------|
+| FIX 6: Add columnWidths + TableLayoutType.FIXED to body Table | 147ee76 | `src/lib/docx/ReportDocx.ts` |
+| FIX 7: Add DOCX-GRID-01 regression test (gridCol collapse guard) | 86d9f50 | `tests/api/export-docx.test.ts` |
 
 ## What Was Built
 
@@ -147,6 +158,14 @@ Changed `metadata.title: "Infinite"` to `"Infinite — Medelite"` in `src/app/la
 - **Commit:** 95cac2f
 - **Regression guard:** JSZip test added (commit 7f71a7f)
 
+**3. [Rule 1 - Bug] docx table columns collapsed in Word — second checkpoint fix (DOCX-GRID-01)**
+- **Found during:** Human UAT re-verification (second round)
+- **Issue:** The body `Table` was constructed with per-cell `width` settings but WITHOUT a `columnWidths` array. The `docx` library emitted a placeholder `<w:tblGrid>` with `<w:gridCol w:w="100"/>` (≈ 0.07 inch) for each column. Microsoft Word lays out columns from `<w:tblGrid>` and ignores per-cell widths when the grid is present, so both columns collapsed to ~1 character wide — text wrapped one letter per line. Browsers and mammoth auto-expand columns and hid the bug; Word does not.
+- **Fix:** Added `columnWidths: [LABEL_CELL_WIDTH_DXA, VALUE_CELL_WIDTH_DXA]` and `layout: TableLayoutType.FIXED` to the body `Table`. Also imported `TableLayoutType` from `docx`. Added an explanatory comment.
+- **Files modified:** `src/lib/docx/ReportDocx.ts`
+- **Commits:** 147ee76 (fix), 86d9f50 (regression test DOCX-GRID-01)
+- **Regression guard:** DOCX-GRID-01 test unzips the .docx, parses the first `<w:tblGrid>`, asserts both `<w:gridCol>` entries have `w:w > 1000` (real widths, not the 100 placeholder), and that they sum to 9360 ± 10.
+
 ### Polish Fixes (user-requested, continuation agent)
 
 **3. [User request] Footer label "CMS dataset processing date"**
@@ -158,18 +177,20 @@ Changed `metadata.title: "Infinite"` to `"Infinite — Medelite"` in `src/app/la
 **5. [User request] Page title "Infinite — Medelite"**
 - layout.tsx metadata.title updated (commit e1c98f9)
 
-## Checkpoint: Human UAT Required (re-verification after fix)
+## Checkpoint: Human UAT Required (re-verification after second fix)
 
-Task 3 remains a `checkpoint:human-verify` gate. The EMU/px bug that caused Word to reject the file has been fixed and regression-guarded. The human must now re-verify:
+Task 3 remains a `checkpoint:human-verify` gate. Two Word-breaking bugs have now been fixed and regression-guarded:
 
-**What was fixed:** `LOGO_DISPLAY_W_EMU = 1_828_800` → `LOGO_DISPLAY_W_PX = 192`. The generated .docx now has a sane image extent (~2 inches wide).
+**Fix 1 (commit 95cac2f):** Logo EMU/px — `LOGO_DISPLAY_W_EMU` → `LOGO_DISPLAY_W_PX = 192`. Correct image extent (~2 inches wide); Word no longer rejects the file.
+
+**Fix 2 (commit 147ee76):** Table column collapse — added `columnWidths: [3931, 5429]` and `TableLayoutType.FIXED` to the body table. Word now renders both columns at their correct widths instead of collapsing to ~1 char wide.
 
 **Re-verification steps:**
 1. From `medelite-report/`, run `npm run dev` and open http://localhost:3000.
 2. Enter CCN `686123`, submit, wait for the preview to populate.
 3. Flip the toggle to DOCX, click "Download DOCX".
-4. Open the downloaded `.docx` in Microsoft Word AND Google Docs.
-5. Confirm: opens cleanly (no repair prompt); static INFINITE header visible; 13 body fields + 12 hospitalization/ED rows present; footer link clickable.
+4. Open the downloaded `.docx` in Microsoft Word.
+5. Confirm: opens cleanly (no repair prompt); static INFINITE header visible; table renders with two proper columns (label left ~42%, value right ~58%); 13 body fields + 12 hospitalization/ED rows present with readable text (NOT one letter per line); footer link clickable.
 6. Confirm content matches the live web preview.
 
 **Status:** Awaiting human re-verification.
@@ -186,10 +207,10 @@ No new network endpoints or auth paths introduced by the continuation fixes. All
 
 - `medelite-report/src/components/ExportControls.tsx` — exists (created)
 - `medelite-report/src/components/SnapshotApp.tsx` — exists (modified)
-- `medelite-report/src/lib/docx/ReportDocx.ts` — exists (FIX 1 applied: LOGO_DISPLAY_W_PX)
-- `medelite-report/tests/api/export-docx.test.ts` — exists (FIX 2: extent regression test)
+- `medelite-report/src/lib/docx/ReportDocx.ts` — exists (FIX 1: LOGO_DISPLAY_W_PX; FIX 6: columnWidths + TableLayoutType.FIXED)
+- `medelite-report/tests/api/export-docx.test.ts` — exists (FIX 2: extent regression; FIX 7: DOCX-GRID-01 gridCol regression)
 - `medelite-report/src/components/ReportPreview.tsx` — exists (FIX 3 + FIX 4 applied)
 - `medelite-report/src/components/pdf/ReportPDF.tsx` — exists (FIX 3 applied)
 - `medelite-report/src/app/layout.tsx` — exists (FIX 5 applied)
-- Commits: 1ea95c0, 0e86ed7, 00ad05b, 95cac2f, 7f71a7f, 23f870f, 080ce9d, e1c98f9
-- `npm run verify` — exit 0 (259 tests passed, 1 skipped)
+- Commits: 1ea95c0, 0e86ed7, 00ad05b, 95cac2f, 7f71a7f, 23f870f, 080ce9d, e1c98f9, 147ee76, 86d9f50
+- `npm run verify` — exit 0 (260 tests passed, 1 skipped)
