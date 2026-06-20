@@ -55,4 +55,22 @@ describe("slugFilename", () => {
   it("CR-01: an all-unsafe CCN fallback yields a safe constant filename", () => {
     expect(slugFilename("", '"\r\n/\\')).toBe("facility-Snapshot.pdf");
   });
+
+  // D-13: ext parameter — .docx extension
+  it("D-13: slugFilename with .docx ext returns slug-Snapshot.docx", () => {
+    expect(
+      slugFilename("Kendall Lakes Healthcare and Rehab Center", "686123", ".docx"),
+    ).toBe("kendall-lakes-healthcare-and-rehab-center-Snapshot.docx");
+  });
+
+  it("D-13: blank displayName with .docx ext returns ccn-Snapshot.docx", () => {
+    expect(slugFilename("", "686123", ".docx")).toBe("686123-Snapshot.docx");
+  });
+
+  it("D-13: default ext is still .pdf (backward compat)", () => {
+    // No third arg — existing callers unaffected
+    expect(slugFilename("Facility Name", "686123")).toBe(
+      "facility-name-Snapshot.pdf",
+    );
+  });
 });
