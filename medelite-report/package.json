@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",
+    "@resvg/resvg-js": "^2.6.2",
     "docx": "^9.7.1",
     "jszip": "^3.10.1",
     "next": "16.2.9",
