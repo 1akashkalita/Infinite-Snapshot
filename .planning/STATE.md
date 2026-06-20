@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: "Phase 06-03 Task 7 — checkpoint:human-verify (Download DOCX UAT; footer hyperlink productionized: clickable Medicare Care Compare link + CMS processing date injected in docx footer; 28 tests green; xmllint well-formed)"
+stopped_at: "Phase 06-03 code-review fixes — CR-01 (callback-form replace, $ cannot corrupt OOXML) + WR-01 (manual field .max() caps) resolved; 4 footgun regression tests added; 278 tests green; xmllint well-formed with $-laden input; human UAT still awaiting"
 last_updated: "2026-06-20T09:40:51.388Z"
 last_activity: 2026-06-20
 progress:
@@ -123,6 +123,8 @@ Recent decisions affecting current work:
 - [Phase 06-03 fix]: TITLE-01: page title "Infinite — Medelite"
 - [Phase 06-03 fix 2]: DOCX-GRID-01: docx Table requires columnWidths array to emit real <w:tblGrid> entries; omitting it emits w:w="100" placeholder (0.07 in) which Word uses for layout — collapses both columns to ~1 char wide. Fixed with columnWidths + TableLayoutType.FIXED.
 - [Phase 06-03 footer]: FOOTER-DOCX-01: clickable Medicare Care Compare hyperlink footer injected into docx before body sectPr via rIdCmsLink External relationship (CLAUDE.md rule #7); guard asserts rIdCmsLink not pre-existing in template rels; 28 tests green including footer assertions + xmllint well-formed
+- [Phase 06-03 CR-01]: CALLBACK-REPLACE: all dynamic .replace() calls use callback form — $& $1 $$ etc. in user input cannot corrupt OOXML; 4 footgun regression tests added; 278 tests green
+- [Phase 06-03 WR-01]: FIELD-LENGTH-CAP: manual free-text fields capped at .max(500)/.max(2000); displayName also capped; yields clean 400 envelope on excess
 
 ### Pending Todos
 
@@ -148,6 +150,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-20T09:40:51.341Z
-Stopped at: Phase 06-03 Task 7 — checkpoint:human-verify (Download DOCX UAT; footer hyperlink productionized: clickable Medicare Care Compare link + CMS processing date injected in docx footer; 28 tests green; xmllint well-formed)
+Last session: 2026-06-20T03:10:00Z
+Stopped at: Phase 06-03 code-review fixes — CR-01 + WR-01 resolved; human UAT checkpoint still open
 Resume file: None

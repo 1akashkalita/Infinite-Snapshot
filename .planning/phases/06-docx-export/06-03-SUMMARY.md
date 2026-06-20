@@ -2,7 +2,7 @@
 phase: "06-docx-export"
 plan: "03"
 subsystem: "export-controls"
-tags: ["ExportControls", "docx", "DOCX-01", "template-fill", "JSZip", "OOXML", "D-06", "D-07", "D-08", "D-09", "yellow-stripped", "label-parity", "no-residual-placeholders", "footer-hyperlink", "cms-link", "rule-7"]
+tags: ["ExportControls", "docx", "DOCX-01", "template-fill", "JSZip", "OOXML", "D-06", "D-07", "D-08", "D-09", "yellow-stripped", "label-parity", "no-residual-placeholders", "footer-hyperlink", "cms-link", "rule-7", "CR-01-fixed", "WR-01-fixed", "callback-form-replace", "field-length-cap"]
 dependency_graph:
   requires:
     - "POST /api/export/docx — 06-02"
@@ -53,9 +53,11 @@ decisions:
   - "FOOTER: clickable Medicare Care Compare hyperlink injected before body sectPr (user chose; CLAUDE.md rule #7 requires clickable CMS link in every export)"
   - "rIdCmsLink guard: assert Id not already present before adding relationship — fails loudly if template changes"
   - "formatDate used for processing date in footer (UTC-safe, D-13)"
+  - "CR-01: all dynamic .replace() calls use callback form — string-form replacement-string metacharacters ($&, $1, etc.) cannot corrupt OOXML"
+  - "WR-01: manual free-text fields capped at .max(500) / .max(2000); displayName also capped; yields clean 400 on excess"
 metrics:
-  duration: "~40 minutes"
-  completed: "2026-06-20T02:40:00Z"
+  duration: "~55 minutes"
+  completed: "2026-06-20T03:05:00Z"
   tasks: 3
   files: 5
 ---
@@ -64,7 +66,7 @@ metrics:
 
 ## One-liner
 
-Template-fill DOCX builder with clickable Medicare Care Compare footer hyperlink — fills official .docx template via JSZip OOXML manipulation (25 rows, yellow stripped, {STATE} replaced), injects footer paragraph with blue underlined CMS link + processing date before body sectPr and External relationship in rels; 28 tests green (0 residual placeholders, label-parity guard, footer assertions, xmllint well-formed); human UAT awaiting.
+Template-fill DOCX builder with CR-01/WR-01 code-review fixes: callback-form replace() prevents $ in user input from corrupting OOXML, field-length caps bound client-controlled export body; 278 tests green including 4 new footgun regression tests (document.xml + rels xmllint well-formed with $-laden input).
 
 ## Tasks Completed
 
@@ -77,6 +79,9 @@ Template-fill DOCX builder with clickable Medicare Care Compare footer hyperlink
 | 5 | Add clickable Medicare Care Compare link footer to docx (rule #7) | 29a205a | `src/lib/docx/ReportDocx.ts` |
 | 6 | Assert docx footer hyperlink + rels relationship | 042e143 | `tests/api/export-docx.test.ts` |
 | 7 | Human UAT | — | awaiting re-verification |
+| CR-01 | Callback-form replace — $ in input cannot corrupt OOXML | 972b6dc | `src/lib/docx/ReportDocx.ts` |
+| WR-01 | Cap manual free-text field lengths to bound DoS surface | 3bfe567 | `src/lib/report/view-model.ts` |
+| REG | Footgun regression: dollar-sign input survives docx fill verbatim | d65230e | `tests/api/export-docx.test.ts` |
 
 ## What Was Built
 
@@ -117,7 +122,50 @@ Removed obsolete from-scratch guards (wp:extent EMU test, w:gridCol collapse tes
 - Yellow markers stripped
 - Label-parity guard: all 12 claims-mapper labels present as filled rows
 
-Total: 28 tests passing, 0 failing (up from 24; 4 new footer assertions added).
+Total: 278 tests passing, 0 failing (up from 274; 4 new CR-01 footgun regression tests added in code-review fix round).
+
+## Code Review Fixes (06-REVIEW.md — CR-01 and WR-01)
+
+### CR-01 Fixed: Callback-form replace — $ in user input cannot corrupt OOXML
+
+**Commit:** 972b6dc
+
+**Issue (confirmed blocker):** `xmlEsc()` escapes the 5 XML special chars (`& < > " '`) but not `$`. The escaped value was placed into the replacement-string argument of `.replace()`, where JS metacharacters `$&`, `$1`, `$$`, `$\``, `$'` are expanded against the match. A user typing `"Cost: $5/visit"` in any free-text field would produce corrupt, unbalanced OOXML that Word refuses to open.
+
+**Fix:** Converted all four dynamic `.replace()` calls to callback (function) form — the callback's return value is always taken verbatim with no `$` interpretation:
+1. Value-cell fill inner call: `(_m, open, close) => \`${open}${xmlEsc(value)}${close}\``
+2. Value-cell fill outer call: `() => newValTag`
+3. Footer sectPr injection: `() => footerP + "<w:sectPr>"`
+4. Rels relationship injection: `() => relXml + "</Relationships>"`
+The `{STATE}` replacement uses `split().join()` which is already literal-safe and was left unchanged.
+
+**Verification:** xmllint confirmed document.xml and rels well-formed with `$&`-containing input; 4 footgun regression tests (see REG commit d65230e) all pass.
+
+### WR-01 Fixed: Manual free-text field length caps
+
+**Commit:** 3bfe567
+
+**Issue:** `emr`, `typeOfPatient`, `medicalCoverage`, `previousProviderPerformance`, and the client-controlled `displayName` (derived from `nameOverride`) were bare `z.string()` with no upper bound. The full ReportViewModel is POSTed by the client to `/api/export/docx`; a multi-megabyte string would be accepted, embedded into document XML, and zipped server-side.
+
+**Fix:** Added `.max()` to each free-text field in `ReportViewModelSchema` — generous-but-bounded limits that yield the existing clean 400 envelope on excess:
+- `manual.emr`: `.max(500)`
+- `manual.typeOfPatient`: `.max(500)`
+- `manual.medicalCoverage`: `.max(2000)`
+- `manual.previousProviderPerformance`: `.max(2000)`
+- `facility.displayName`: `.max(500)`
+Field optionality/nullability and all report logic unchanged. No existing test values exceed these caps.
+
+### WR-02 Mitigated: Residual-placeholder test covers current template
+
+WR-02 (multi-run row silently skips) is a latent trap if the template is re-saved from Word. The existing no-residual-placeholder tests provide a runtime guard: any unfilled row would leave its original XML placeholder visible. Tracked as a follow-up item; current template uses single-run cells.
+
+### WR-03 / WR-04 Accepted as-is
+
+WR-03 (`formatBeds` locale-grouped digits) and WR-04 (`formatDate` "Invalid Date" on bad format) are pre-existing formatter behaviors. `processingDate` comes from a verified CMS fixture string. Both are deferred as follow-up improvements; they do not affect correctness under normal CMS data.
+
+### IN-01 / IN-02 / IN-03 Style accepted
+
+IN-01 (duplicated `renderMetricValue`), IN-02 (hardcoded format list), IN-03 (hardcoded footer colors) are acknowledged style items. Kept as-is for now; refactoring deferred to a future polish pass.
 
 ## Deviations from Plan
 
@@ -206,9 +254,12 @@ Added `text-zinc-900 placeholder:text-zinc-400` to the CCN `<input>` className. 
 
 - `medelite-report/src/lib/docx/facility-assessment-snapshot.template.docx` — exists (committed)
 - `medelite-report/src/lib/docx/template.ts` — exists (base64 27160 chars, PK-magic verified)
-- `medelite-report/src/lib/docx/ReportDocx.ts` — exists (buildReportDocxBuffer with footer injection)
+- `medelite-report/src/lib/docx/ReportDocx.ts` — exists (buildReportDocxBuffer with callback-form replace, CR-01 fix)
+- `medelite-report/src/lib/report/view-model.ts` — exists (manual field .max() caps, WR-01 fix)
 - `medelite-report/src/app/api/export/docx/route.ts` — exists (uses buildReportDocxBuffer)
-- `medelite-report/tests/api/export-docx.test.ts` — exists (28 tests all passing)
-- Commits: 87f06a8, 9eebf3b, 2345206, 3e53f3e, 29a205a, 042e143
-- `npm run verify` — exit 0 (273 tests passed, 1 skipped)
-- `xmllint --noout` on generated document.xml and rels — WELL-FORMED
+- `medelite-report/tests/api/export-docx.test.ts` — exists (278 tests all passing, 4 new footgun regression tests)
+- Commits: 87f06a8, 9eebf3b, 2345206, 3e53f3e, 29a205a, 042e143, bace7f2, 972b6dc, 3bfe567, d65230e
+- `npm run verify` — exit 0 (278 tests passed, 1 skipped)
+- `xmllint --noout` on generated document.xml and rels with $-laden input — WELL-FORMED
+- Literal `$&`, `$1`, `$$` survive in document.xml verbatim (XML-escaped form)
+- `</Relationships>` appears exactly once in rels with $-laden careCompareUrl
