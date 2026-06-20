@@ -290,15 +290,31 @@ export function ReportPDF({ vm }: { vm: ReportViewModel }) {
           )}
         </View>
 
-        {/* CHARTS — 4 mini grouped-bar charts (one per measure group) added BELOW   */}
-        {/* the 12 verbatim metric rows (D-03: CLM-03 rows are UNCHANGED above).     */}
-        {/* D-07: facility/national/state bars. D-08: legend required in PDF chart.  */}
-        {/* VIZ-02: PdfMiniBarChart wraps recharts via react-pdf-charts adapter.     */}
-        {/* react-pdf has NO keyed Fragment — key the wrapping View.                 */}
+        {/* CHARTS — 4 mini grouped-bar charts in a 2×2 GRID below the metric rows.  */}
+        {/* D-07: facility/national/state bars. No legend — series identity conveyed  */}
+        {/* by X-axis category labels (Facility/National/State) and chart title.      */}
+        {/* VIZ-02: PdfMiniBarChart uses native react-pdf SVG primitives.             */}
+        {/* react-pdf has NO keyed Fragment — key the wrapping View.                  */}
         {vm.hospMetrics && vm.hospMetrics.length > 0 && (
-          <View style={{ marginTop: 8 }}>
+          <View
+            style={{
+              marginTop: 8,
+              flexDirection: "row",
+              flexWrap: "wrap",
+            }}
+          >
             {groupByMeasure(vm.hospMetrics).map((group, i) => (
-              <PdfMiniBarChart key={i} group={group} />
+              <View
+                key={i}
+                style={{
+                  width: "50%",
+                  paddingRight: i % 2 === 0 ? 4 : 0,
+                  paddingLeft: i % 2 === 1 ? 4 : 0,
+                  marginBottom: 4,
+                }}
+              >
+                <PdfMiniBarChart group={group} />
+              </View>
             ))}
           </View>
         )}
