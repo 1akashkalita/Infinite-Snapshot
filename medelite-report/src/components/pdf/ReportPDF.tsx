@@ -268,7 +268,7 @@ export function ReportPDF({ vm }: { vm: ReportViewModel }) {
           )}
         </View>
 
-        {/* FOOTER — required clickable Medicare link (rule #7) + CMS processing date */}
+        {/* FOOTER — required clickable Medicare link (rule #7) + CMS dataset processing date */}
         <View style={styles.footer}>
           {/* D-04: clickable PDF link annotation — src prop, not href. Already validated. */}
           <Link src={f.careCompareUrl}>
@@ -277,7 +277,7 @@ export function ReportPDF({ vm }: { vm: ReportViewModel }) {
             </Text>
           </Link>
           <Text style={styles.footerText}>
-            CMS processing date: {formatDate(f.processingDate)}
+            CMS dataset processing date: {formatDate(f.processingDate)}
           </Text>
         </View>
       </Page>

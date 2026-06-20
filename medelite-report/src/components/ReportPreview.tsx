@@ -205,8 +205,8 @@ export function ReportPreview({ vm, fetchState }: Props) {
       </table>
 
       {/* ------------------------------------------------------------------ */}
-      {/* FOOTER — required clickable Medicare Care Compare link (rule #7) +   */}
-      {/* CMS processing date. Sits below the table; not part of the template. */}
+      {/* FOOTER — required clickable Medicare Care Compare link (rule #7) +            */}
+      {/* CMS dataset processing date. Sits below the table; not part of the template. */}
       {/* ------------------------------------------------------------------ */}
       <footer className="pt-3 mt-3 text-xs text-zinc-500 flex justify-between">
         <a
@@ -217,7 +217,7 @@ export function ReportPreview({ vm, fetchState }: Props) {
         >
           View official CMS profile on Medicare.gov
         </a>
-        <span>CMS processing date: {formatDate(f.processingDate)}</span>
+        <span>CMS dataset processing date: {formatDate(f.processingDate)}</span>
       </footer>
     </article>
   );

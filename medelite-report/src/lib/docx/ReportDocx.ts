@@ -255,7 +255,7 @@ export function buildReportDocx(vm: ReportViewModel): Document {
     rows: [...bodyRows, ...metricRows],
   });
 
-  // ---- Footer: clickable Medicare link (D-10) + CMS processing date ----
+  // ---- Footer: clickable Medicare link (D-10) + CMS dataset processing date ----
   // ExternalHyperlink uses `link` (NOT `href`) in docx v9 — per 06-RESEARCH.
   // Both "Hyperlink" style AND explicit color/underline for Google Docs compatibility.
   const footerParagraph = new Paragraph({
@@ -273,7 +273,7 @@ export function buildReportDocx(vm: ReportViewModel): Document {
         ],
       }),
       new TextRun({
-        text: `   CMS processing date: ${formatDate(f.processingDate)}`,
+        text: `   CMS dataset processing date: ${formatDate(f.processingDate)}`,
         color: "9ca3af",
         size: 18,
       }),
