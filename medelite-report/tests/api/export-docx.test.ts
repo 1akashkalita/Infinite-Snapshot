@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { POST } from "@/app/api/export/docx/route";
+import { buildReportDocx } from "@/lib/docx/ReportDocx";
 import { assembleViewModel } from "@/lib/report/view-model";
 import { toFacilityData } from "@/lib/cms/mapper";
 import { parseCMSRow } from "@/lib/cms/parse";
@@ -9,6 +10,8 @@ import { AveragesRowSchema } from "@/lib/cms/averages-schema";
 import providerFixture from "../fixtures/provider-686123.json";
 import claimsFixture from "../fixtures/claims-686123.json";
 import averagesFixture from "../fixtures/averages-xcdc.json";
+import { Packer } from "docx";
+import JSZip from "jszip";
 
 // DOCX-01: POST /api/export/docx route tests.
 //   Valid ReportViewModel → 200 OOXML buffer (PK ZIP magic bytes, < 4.5 MB)
@@ -143,5 +146,36 @@ describe("POST /api/export/docx — valid body", () => {
   it("returns 200 for validVmWithMetrics (claims path renders without throwing)", async () => {
     const resp = await POST(makeRequest(validVmWithMetrics));
     expect(resp.status).toBe(200);
+  });
+});
+
+// DOCX-EMU-01: image extent regression guard — ensures the logo transformation is in
+// pixels (not EMU). The docx library multiplies px by 9525 internally; passing EMU
+// produced wp:extent cx ≈ 17_419_320_000 (~0.3 mile) which Word refuses to open.
+//
+// This test unzips the generated .docx and reads word/document.xml, then checks that
+// the wp:extent cx attribute is a sane positive integer (< 10_000_000 EMU ≈ < ~11 in).
+// At 192 px the correct cx = 192 × 9525 = 1_828_800 — well within the bound.
+// The old bug produced cx = 1_828_800 × 9525 = 17_419_320_000, which exceeds 10_000_000.
+describe("DOCX image extent regression (EMU/px guard)", () => {
+  it("wp:extent cx in word/document.xml is sane (< 10_000_000 EMU — guards against EMU×9525 double-scaling)", async () => {
+    const doc = buildReportDocx(validVm);
+    const buffer = await Packer.toBuffer(doc);
+    const zip = await JSZip.loadAsync(buffer);
+    const xmlFile = zip.file("word/document.xml");
+    expect(xmlFile).not.toBeNull();
+    const xml = await xmlFile!.async("string");
+
+    // Extract all wp:extent cx="..." values and assert each is within a sane range.
+    // The regex matches the first occurrence; a valid 192px logo produces cx=1828800.
+    const matches = [...xml.matchAll(/wp:extent\s+cx="(\d+)"/g)];
+    expect(matches.length).toBeGreaterThan(0);
+
+    for (const match of matches) {
+      const cx = parseInt(match[1], 10);
+      // Must be a positive integer and < 10_000_000 EMU (≈ 11 inches)
+      expect(cx).toBeGreaterThan(0);
+      expect(cx).toBeLessThan(10_000_000);
+    }
   });
 });
