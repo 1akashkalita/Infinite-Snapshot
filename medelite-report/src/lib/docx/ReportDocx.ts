@@ -33,6 +33,8 @@ import {
   formatFootnote,
   formatDate,
 } from "@/lib/report/format";
+import { getStarBand, buildStarGlyphs } from "@/lib/report/star-band";
+import { STAR_BAND_HEX } from "@/lib/report/colors";
 import { FACILITY_TEMPLATE_DOCX_BASE64 } from "@/lib/docx/template";
 import type { ReportViewModel } from "@/lib/report/view-model";
 import type { HospMetric } from "@/lib/cms/types";
@@ -59,6 +61,45 @@ function xmlDecode(s: string): string {
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'");
+}
+
+// ---------------------------------------------------------------------------
+// buildStarRunXml — OOXML <w:r> fragment for a star rating value cell (D-11)
+// ---------------------------------------------------------------------------
+
+/**
+ * Star row labels — the 4 label-cell texts that trigger star OOXML injection.
+ * These MUST match the left-cell text in the template exactly.
+ */
+const STAR_ROW_LABELS = [
+  "Overall Star Rating",
+  "Health Inspection",
+  "Staffing",
+  "Quality of Resident Care",
+] as const;
+
+/**
+ * Builds a colored OOXML <w:r> run fragment for a star rating value cell.
+ *
+ * null → grey (#9ca3af) "N/A" run (D-06).
+ * 1–5 → band-hex colored run with Unicode glyphs + " N/5".
+ *
+ * Security (T-7-02): only closed-enum hex strings (from getStarBand + STAR_BAND_HEX)
+ * and an integer rating are interpolated — no client free-text reaches this fragment.
+ * Unicode ★/☆ are literal Unicode in the text node — NOT routed through xmlEsc
+ * (Pitfall 7: xmlEsc only escapes XML specials &<>"'; it does not touch Unicode).
+ * CR-01: callers MUST inject this fragment via callback-form .replace(), never string-form.
+ */
+function buildStarRunXml(rating: number | null): string {
+  if (rating === null) {
+    return `<w:r><w:rPr><w:color w:val="9ca3af"/></w:rPr><w:t>N/A</w:t></w:r>`;
+  }
+  const band = getStarBand(rating);
+  // STAR_BAND_HEX values are closed-enum hex strings — strip the leading "#" for w:val.
+  const hex = STAR_BAND_HEX[band].slice(1); // e.g. "#16a34a" → "16a34a"
+  const glyphs = buildStarGlyphs(rating);
+  // xml:space="preserve" keeps the space between glyphs and the "N/5" number.
+  return `<w:r><w:rPr><w:color w:val="${hex}"/></w:rPr><w:t xml:space="preserve">${glyphs} ${rating}/5</w:t></w:r>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -148,11 +189,56 @@ export async function buildReportDocxBuffer(
   // 6. Fill each 2-cell table row by matching the left-cell label.
   //    Rows with exactly 2 <w:t> tags: first = label, second = value placeholder.
   //    Rows with ≠ 2 <w:t> tags (header rows, merged cells) are left unchanged.
+  //
+  //    STAR ROW INJECTION (D-11 / T-7-02): The 4 rating rows are handled via a
+  //    SEPARATE path inside this loop to bypass xmlEsc() and inject pre-built OOXML
+  //    <w:r> runs (buildStarRunXml). Routing the star OOXML fragment through xmlEsc
+  //    would escape the run tags as literal text, corrupting the output (Pitfall 7).
+  //    CR-01: all .replace() calls that inject star fragments use callback form.
+  const STAR_ROW_SET = new Set<string>(STAR_ROW_LABELS);
+  const STAR_RATING_MAP: Record<string, number | null> = {
+    "Overall Star Rating": vm.facility.starRatings.overall,
+    "Health Inspection": vm.facility.starRatings.healthInspection,
+    Staffing: vm.facility.starRatings.staffing,
+    "Quality of Resident Care": vm.facility.starRatings.qualityCare,
+  };
+
   xml = xml.replace(/<w:tr[\s>][\s\S]*?<\/w:tr>/g, (row) => {
     const tMatches = [...row.matchAll(/<w:t\b[^>]*>([\s\S]*?)<\/w:t>/g)];
     if (tMatches.length !== 2) return row; // not a label|value row
 
     const label = xmlDecode(tMatches[0][1]).trim();
+
+    // Star row path — inject colored OOXML run instead of plain xmlEsc text.
+    if (STAR_ROW_SET.has(label)) {
+      const rating = STAR_RATING_MAP[label] ?? null;
+      const starFragment = buildStarRunXml(rating);
+
+      // Find the second <w:tc> (value cell) and replace ALL its <w:r>…</w:r> runs
+      // with a single star run. This ensures no leftover placeholder text survives.
+      // Split on the second <w:tc> start tag — the second cell holds the value.
+      const tcMatches = [...row.matchAll(/<w:tc\b[\s\S]*?<\/w:tc>/g)];
+      if (tcMatches.length >= 2) {
+        const originalTc = tcMatches[1][0];
+        // Replace all <w:r>…</w:r> blocks inside the value cell with the star run.
+        // CR-01: callback form so any `$` in starFragment is literal.
+        const newTc = originalTc.replace(
+          /(<w:r\b[\s\S]*?<\/w:r>)+/,
+          () => starFragment,
+        );
+        // CR-01: callback form for the outer row replacement.
+        return row.replace(originalTc, () => newTc);
+      }
+      // Fallback if cell structure doesn't match expectation: fill via text path.
+      const originalValTag = tMatches[1][0];
+      const fallback = formatRating(rating);
+      const newValTag = originalValTag.replace(
+        /(<w:t\b[^>]*>)[\s\S]*?(<\/w:t>)/,
+        (_m, open, close) => `${open}${xmlEsc(fallback)}${close}`,
+      );
+      return row.replace(originalValTag, () => newValTag);
+    }
+
     // Use MAP value if label matches; default to "—" so no placeholder survives.
     const value = label in MAP ? MAP[label] : "—";
 

@@ -394,3 +394,87 @@ describe("CR-01 footgun — $ in user input survives OOXML fill verbatim", () =>
     expect(closeCount).toBe(1);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Task 3: colored Unicode star runs in docx (D-11 / VIZ-02 / T-7-02)
+//
+// Guards:
+//  - Green hex (#16a34a → "16a34a") present in w:val for an overall_rating=5 (green band).
+//  - Unicode filled star glyph (★) present in the filled star row XML.
+//  - Red hex (#dc2626 → "dc2626") present for staffing_rating=2 (red band).
+//  - null-rating vm → grey hex ("9ca3af") + "N/A" text, no "★" glyph (D-06).
+//  - T-7-02: no raw `<` or `>` from xmlEsc injection can appear in the star fragment
+//    (closed-enum hex + integer only; no client free-text in the interpolation).
+// ---------------------------------------------------------------------------
+
+describe("DOCX star-run injection — D-11 / VIZ-02 / T-7-02", () => {
+  // validVm uses fixture CCN 686123: overall_rating=5 (green), staffing_rating=2 (red).
+  async function getDocxXml(vm: typeof validVm): Promise<string> {
+    const bytes = await buildReportDocxBuffer(vm);
+    const zip = await JSZip.loadAsync(bytes);
+    const xmlFile = zip.file("word/document.xml");
+    expect(xmlFile).not.toBeNull();
+    return xmlFile!.async("string");
+  }
+
+  it("overall_rating=5 (green band) → w:val contains green hex '16a34a'", async () => {
+    const xml = await getDocxXml(validVm);
+    // Green band = STAR_BAND_HEX.green = "#16a34a"; strip "#" → "16a34a"
+    expect(xml).toContain('w:val="16a34a"');
+  });
+
+  it("staffing_rating=2 (red band) → w:val contains red hex 'dc2626'", async () => {
+    const xml = await getDocxXml(validVm);
+    // Red band = STAR_BAND_HEX.red = "#dc2626"; strip "#" → "dc2626"
+    expect(xml).toContain('w:val="dc2626"');
+  });
+
+  it("VIZ-02: filled star glyph ★ is present in the XML for a rated star row", async () => {
+    const xml = await getDocxXml(validVm);
+    expect(xml).toContain("★");
+  });
+
+  it("overall_rating=5 → text '★★★★★ 5/5' is present in the XML (5 filled, no outline in injected run)", async () => {
+    const xml = await getDocxXml(validVm);
+    // buildStarGlyphs(5) = "★★★★★"; full injected run text = "★★★★★ 5/5"
+    expect(xml).toContain("★★★★★");
+    // The injected run must contain the numeric label confirming all 5 are filled
+    expect(xml).toContain("★★★★★ 5/5");
+  });
+
+  it("D-06: null-rating vm → grey hex '9ca3af' and 'N/A' text, no ★ glyph", async () => {
+    // Build a vm with all star ratings explicitly null (suppress via direct override).
+    // We need to bypass assembleViewModel (which reads from fixture) and produce a vm
+    // with null starRatings — use spread to override the facility.starRatings fields.
+    const nullRatingVm = {
+      ...validVm,
+      facility: {
+        ...validVm.facility,
+        starRatings: {
+          overall: null,
+          healthInspection: null,
+          staffing: null,
+          qualityCare: null,
+        },
+      },
+    };
+
+    const xml = await getDocxXml(nullRatingVm as typeof validVm);
+    // null → buildStarRunXml(null) → grey "N/A" run
+    expect(xml).toContain('w:val="9ca3af"');
+    expect(xml).toContain("N/A");
+    // No filled star glyph should appear for any of the null star rows
+    expect(xml).not.toContain("★");
+  });
+
+  it("T-7-02: star OOXML fragment contains no unescaped XML angle brackets from input", async () => {
+    // Security guard: buildStarRunXml interpolates only STAR_BAND_HEX hex values and
+    // an integer rating — no client free-text reaches the fragment. This test confirms
+    // the fragment is well-formed by verifying each <w:r> is closed (no unclosed tags).
+    const xml = await getDocxXml(validVm);
+    // Every <w:r> must be closed with </w:r>
+    const opens = (xml.match(/<w:r\b/g) ?? []).length;
+    const closes = (xml.match(/<\/w:r>/g) ?? []).length;
+    expect(opens).toEqual(closes);
+  });
+});
