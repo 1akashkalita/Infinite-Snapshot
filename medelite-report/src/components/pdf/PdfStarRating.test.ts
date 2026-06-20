@@ -112,7 +112,7 @@ describe("PdfStarRating — rated input (rating: 4)", () => {
     // Path props: fill=hex for i<4, fill='none' for i>=4
     expect(pathNodes[0]!.props.fill).not.toBe("none"); // filled
     expect(pathNodes[3]!.props.fill).not.toBe("none"); // filled
-    expect(pathNodes[4]!.props.fill).toBe("none");     // outline
+    expect(pathNodes[4]!.props.fill).toBe("none"); // outline
   });
 
   it("does NOT return a bare Text element at the top level (VIZ-02: must be Svg-based)", () => {
@@ -175,8 +175,8 @@ describe("PdfStarRating — different ratings produce different fill counts", ()
     const pathNodes = findByType(el, Path);
     expect(pathNodes).toHaveLength(5);
     expect(pathNodes[0]!.props.fill).not.toBe("none"); // filled
-    expect(pathNodes[1]!.props.fill).toBe("none");     // outline
-    expect(pathNodes[4]!.props.fill).toBe("none");     // outline
+    expect(pathNodes[1]!.props.fill).toBe("none"); // outline
+    expect(pathNodes[4]!.props.fill).toBe("none"); // outline
   });
 
   it("rating 3 → first 3 filled, last 2 are outlines", () => {

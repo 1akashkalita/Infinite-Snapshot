@@ -231,8 +231,34 @@ describe("ReportViewModelSchema — hospMetrics (D-13 / Phase 5)", () => {
   // Build a valid HospMetric array (12 items) for schema testing.
   // D-15: measureKey + source are now required on every HospMetric.
   // 12 rows = 4 measures × 3 sources (facility, nation, state).
-  const MEASURE_KEYS = ["521", "521", "521", "522", "522", "522", "551", "551", "551", "552", "552", "552"] as const;
-  const SOURCES = ["facility", "nation", "state", "facility", "nation", "state", "facility", "nation", "state", "facility", "nation", "state"] as const;
+  const MEASURE_KEYS = [
+    "521",
+    "521",
+    "521",
+    "522",
+    "522",
+    "522",
+    "551",
+    "551",
+    "551",
+    "552",
+    "552",
+    "552",
+  ] as const;
+  const SOURCES = [
+    "facility",
+    "nation",
+    "state",
+    "facility",
+    "nation",
+    "state",
+    "facility",
+    "nation",
+    "state",
+    "facility",
+    "nation",
+    "state",
+  ] as const;
   const makeHospMetric = (i: number) => ({
     label: `Metric ${i}`,
     value: i % 3 === 0 ? null : i * 1.5,

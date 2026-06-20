@@ -39,7 +39,9 @@ export function PdfStarRating({ rating }: { rating: number | null }) {
   // D-06: strict null check — null → grey N/A Text, no glyphs.
   if (rating === null) {
     return (
-      <Text style={{ color: STAR_BAND_HEX.grey, fontFamily: "Helvetica-Oblique" }}>
+      <Text
+        style={{ color: STAR_BAND_HEX.grey, fontFamily: "Helvetica-Oblique" }}
+      >
         N/A
       </Text>
     );
@@ -59,7 +61,9 @@ export function PdfStarRating({ rating }: { rating: number | null }) {
           />
         </Svg>
       ))}
-      <Text style={{ color: fill, marginLeft: 4, fontFamily: "Helvetica-Oblique" }}>
+      <Text
+        style={{ color: fill, marginLeft: 4, fontFamily: "Helvetica-Oblique" }}
+      >
         {rating}/5
       </Text>
     </View>

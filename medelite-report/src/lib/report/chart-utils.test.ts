@@ -198,14 +198,18 @@ describe("HospMetricSchema (via ReportViewModelSchema) — D-15 closed enum enfo
 
   it("accepts all 4 valid measureKey values", () => {
     for (const key of ["521", "522", "551", "552"]) {
-      const result = hospMetricsSchema.safeParse([{ ...validMetric, measureKey: key }]);
+      const result = hospMetricsSchema.safeParse([
+        { ...validMetric, measureKey: key },
+      ]);
       expect(result.success).toBe(true);
     }
   });
 
   it("accepts all 3 valid source values", () => {
     for (const src of ["facility", "nation", "state"]) {
-      const result = hospMetricsSchema.safeParse([{ ...validMetric, source: src }]);
+      const result = hospMetricsSchema.safeParse([
+        { ...validMetric, source: src },
+      ]);
       expect(result.success).toBe(true);
     }
   });
