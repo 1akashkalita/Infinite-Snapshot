@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { POST } from "@/app/api/export/docx/route";
-import { buildReportDocx } from "@/lib/docx/ReportDocx";
+import { buildReportDocxBuffer } from "@/lib/docx/ReportDocx";
 import { assembleViewModel } from "@/lib/report/view-model";
 import { toFacilityData } from "@/lib/cms/mapper";
 import { parseCMSRow } from "@/lib/cms/parse";
@@ -10,7 +10,6 @@ import { AveragesRowSchema } from "@/lib/cms/averages-schema";
 import providerFixture from "../fixtures/provider-686123.json";
 import claimsFixture from "../fixtures/claims-686123.json";
 import averagesFixture from "../fixtures/averages-xcdc.json";
-import { Packer } from "docx";
 import JSZip from "jszip";
 
 // DOCX-01: POST /api/export/docx route tests.
@@ -18,6 +17,13 @@ import JSZip from "jszip";
 //   with correct Content-Type and Content-Disposition .docx filename.
 //   Bad shape → 400 { error: { kind: 'invalid_request', message } }
 //   No Zod internals in 400 body (D-05 discipline).
+//
+//   Template-fill assertions (pivot from from-scratch docx primitives):
+//   - facility name present in filled XML
+//   - at least one metric value present
+//   - no residual placeholders remain
+//   - yellow shading markers stripped
+//   - label-parity: every claims-mapper label appears as a filled row
 
 const FIXED_DATE = "2026-06-17T12:00:00Z";
 
@@ -149,80 +155,103 @@ describe("POST /api/export/docx — valid body", () => {
   });
 });
 
-// DOCX-EMU-01: image extent regression guard — ensures the logo transformation is in
-// pixels (not EMU). The docx library multiplies px by 9525 internally; passing EMU
-// produced wp:extent cx ≈ 17_419_320_000 (~0.3 mile) which Word refuses to open.
-//
-// This test unzips the generated .docx and reads word/document.xml, then checks that
-// the wp:extent cx attribute is a sane positive integer (< 10_000_000 EMU ≈ < ~11 in).
-// At 192 px the correct cx = 192 × 9525 = 1_828_800 — well within the bound.
-// The old bug produced cx = 1_828_800 × 9525 = 17_419_320_000, which exceeds 10_000_000.
-describe("DOCX image extent regression (EMU/px guard)", () => {
-  it("wp:extent cx in word/document.xml is sane (< 10_000_000 EMU — guards against EMU×9525 double-scaling)", async () => {
-    const doc = buildReportDocx(validVm);
-    const buffer = await Packer.toBuffer(doc);
-    const zip = await JSZip.loadAsync(buffer);
+// ---------------------------------------------------------------------------
+// Template-fill assertions — replace the obsolete from-scratch docx-primitive
+// guards (wp:extent image-extent test and w:gridCol "not collapsed" test) with
+// assertions that verify the template fill actually worked correctly.
+// ---------------------------------------------------------------------------
+
+describe("DOCX template-fill assertions", () => {
+  // Helper: build buffer from vm and parse the word/document.xml
+  async function getFilledXml(
+    vm: typeof validVm,
+  ): Promise<{ xml: string; zip: JSZip }> {
+    const bytes = await buildReportDocxBuffer(vm);
+    const zip = await JSZip.loadAsync(bytes);
     const xmlFile = zip.file("word/document.xml");
     expect(xmlFile).not.toBeNull();
     const xml = await xmlFile!.async("string");
+    return { xml, zip };
+  }
 
-    // Extract all wp:extent cx="..." values and assert each is within a sane range.
-    // The regex matches the first occurrence; a valid 192px logo produces cx=1828800.
-    const matches = [...xml.matchAll(/wp:extent\s+cx="(\d+)"/g)];
-    expect(matches.length).toBeGreaterThan(0);
-
-    for (const match of matches) {
-      const cx = parseInt(match[1], 10);
-      // Must be a positive integer and < 10_000_000 EMU (≈ 11 inches)
-      expect(cx).toBeGreaterThan(0);
-      expect(cx).toBeLessThan(10_000_000);
-    }
+  it("filled facility name is present in the document XML", async () => {
+    const { xml } = await getFilledXml(validVm);
+    // Kendall Lakes Healthcare and Rehab Center (CMS uppercase from fixture)
+    expect(xml).toContain("KENDALL LAKES HEALTHCARE AND REHAB CENTER");
   });
-});
 
-// DOCX-GRID-01: table grid column-collapse regression guard.
-//
-// Microsoft Word lays out column widths from <w:tblGrid><w:gridCol w:w="N"/>. When
-// columnWidths is omitted from the docx Table constructor the library emits a
-// placeholder grid of w:w="100" (≈ 0.07 inch) causing both columns to collapse to
-// ~1 character wide and all cell text to wrap one letter per line (invisible in
-// browsers/mammoth which auto-expand columns, but fatal in Word).
-//
-// This test unzips the generated .docx, reads word/document.xml, and asserts that
-// every <w:gridCol> carries a real width (> 1000 dxa) and that the two-column grid
-// sums to approximately TABLE_WIDTH_DXA (9360 ± 10 for any rounding).
-// The test FAILS against the old code that emitted w:w="100".
-describe("DOCX-GRID-01: table grid column-collapse regression", () => {
-  it("w:tblGrid gridCol widths are real (> 1000 dxa each) and sum to ~9360 (not collapsed placeholder 100)", async () => {
-    const doc = buildReportDocx(validVm);
-    const buffer = await Packer.toBuffer(doc);
-    const zip = await JSZip.loadAsync(buffer);
-    const xmlFile = zip.file("word/document.xml");
-    expect(xmlFile).not.toBeNull();
-    const xml = await xmlFile!.async("string");
+  it("at least one metric value from the fixture is present (e.g. a % value)", async () => {
+    const { xml } = await getFilledXml(validVmWithMetrics);
+    // The fixture for CCN 686123 has real metric values — at least one percentage
+    // will appear formatted as "N.N%" in the filled XML. We match the generic pattern.
+    expect(xml).toMatch(/\d+\.\d+%/);
+  });
 
-    // Extract all <w:tblGrid> blocks and the gridCol widths within the first one.
-    // A real two-column table should have exactly 2 gridCol entries summing to 9360.
-    const tblGridMatch = xml.match(/<w:tblGrid>([\s\S]*?)<\/w:tblGrid>/);
-    expect(tblGridMatch).not.toBeNull();
-    const tblGridXml = tblGridMatch![1];
+  it("no residual {CMS API} placeholder remains", async () => {
+    const { xml } = await getFilledXml(validVmWithMetrics);
+    expect(xml).not.toContain("{CMS API}");
+  });
 
-    const gridColMatches = [
-      ...tblGridXml.matchAll(/<w:gridCol[^/]*w:w="(\d+)"/g),
+  it("no residual {Address} placeholder remains", async () => {
+    const { xml } = await getFilledXml(validVm);
+    expect(xml).not.toContain("{Address}");
+  });
+
+  it("no residual {STATE} placeholder remains", async () => {
+    const { xml } = await getFilledXml(validVm);
+    expect(xml).not.toContain("{STATE}");
+  });
+
+  it("no residual {Number of Certified Beds} placeholder remains", async () => {
+    const { xml } = await getFilledXml(validVm);
+    expect(xml).not.toContain("{Number of Certified Beds}");
+  });
+
+  it("no residual {Average Number of Residents per Day} placeholder remains", async () => {
+    const { xml } = await getFilledXml(validVm);
+    expect(xml).not.toContain("{Average Number of Residents per Day}");
+  });
+
+  it("no residual {CMS API Star Rating} placeholder remains", async () => {
+    const { xml } = await getFilledXml(validVm);
+    expect(xml).not.toContain("{CMS API Star Rating}");
+  });
+
+  it("no residual <Text placeholder remains (XML-escaped form)", async () => {
+    const { xml } = await getFilledXml(validVm);
+    // Template uses <Text> as placeholder — XML-escaped to &lt;Text in the OOXML
+    expect(xml).not.toContain("&lt;Text");
+  });
+
+  it('yellow shading markers (w:fill="ffff00") are stripped from the output', async () => {
+    const { xml } = await getFilledXml(validVmWithMetrics);
+    expect(xml).not.toMatch(/w:fill="ffff00"/i);
+  });
+
+  // Label-parity guard: every label from claims-mapper must appear as a filled row.
+  // This guards against future label drift between the claims-mapper and the template.
+  it("all 12 claims-mapper labels appear as filled rows in the output (label-parity guard)", async () => {
+    const { xml } = await getFilledXml(validVmWithMetrics);
+
+    // The 12 verbatim labels from claims-mapper.ts (D-04 — garbles preserved)
+    const expectedLabels = [
+      "Short Term Hospitalization",
+      "STR National Avg. for Hospitalization",
+      "STR State National Avg. for Hospitalization",
+      "STR ED Visit",
+      "STR ED Visits National Avg.",
+      "STR ED Visits State Avg.",
+      "LT Hospitalization",
+      "LT National Avg. for Hospitalization",
+      "LT State National Avg. for Hospitalization",
+      "ED Visit",
+      "LT ED Visits National Avg.",
+      "LT ED Visits State Avg.",
     ];
-    // Must have exactly 2 columns (label + value)
-    expect(gridColMatches.length).toBe(2);
 
-    const widths = gridColMatches.map((m) => parseInt(m[1], 10));
-    // Each column must be a real width — the collapsed placeholder is w:w="100" (~0.07 in).
-    // Label col ≈ 3931 dxa, value col ≈ 5429 dxa — both well above 1000.
-    for (const w of widths) {
-      expect(w).toBeGreaterThan(1000);
+    for (const label of expectedLabels) {
+      // Each label is in the left cell of a table row — it must appear in the filled XML.
+      expect(xml, `Missing label in filled XML: "${label}"`).toContain(label);
     }
-
-    // Total must match TABLE_WIDTH_DXA (9360) within a small rounding tolerance.
-    const total = widths.reduce((a, b) => a + b, 0);
-    expect(total).toBeGreaterThanOrEqual(9350);
-    expect(total).toBeLessThanOrEqual(9370);
   });
 });
