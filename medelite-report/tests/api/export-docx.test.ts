@@ -293,3 +293,104 @@ describe("DOCX template-fill assertions", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// CR-01 footgun regression — $ in user input must NOT corrupt OOXML
+//
+// This test WOULD FAIL against the original string-form .replace() calls
+// because JS replacement-pattern metacharacters ($&, $`, $', $$, $1…) would
+// be expanded against the match, producing nested/unbalanced <w:t> tags and
+// corrupt OOXML that Word cannot open. The callback-form fix (CR-01) makes
+// the returned string always literal, so these tests pass.
+// ---------------------------------------------------------------------------
+
+describe("CR-01 footgun — $ in user input survives OOXML fill verbatim", () => {
+  // The value contains every JS replacement-pattern metacharacter:
+  //   $&  → whole match  (corrupts if string-form)
+  //   $1  → capture group 1
+  //   $$  → literal $ in string-form (but double-expansion would still mangle)
+  //   $`  → string before match
+  //   $'  → string after match
+  const DOLLAR_VALUE = "Cost: $5 $& $1 $$ $`  $' /visit";
+
+  // Build a vm with the dollar-laden string as the nameOverride (→ displayName).
+  // ManualInputs.nameOverride has no Zod cap (it's an interface); only the schema
+  // enforces .max(500), and this value is ~30 chars — well within the cap.
+  const dollarVm = assembleViewModel(
+    toFacilityData(parseCMSRow(providerFixture[0])),
+    { nameOverride: DOLLAR_VALUE },
+    FIXED_DATE,
+  );
+
+  it("$ in displayName: document.xml contains the literal value (XML-escaped)", async () => {
+    const bytes = await buildReportDocxBuffer(dollarVm);
+    const zip = await JSZip.loadAsync(bytes);
+    const xmlFile = zip.file("word/document.xml");
+    expect(xmlFile).not.toBeNull();
+    const xml = await xmlFile!.async("string");
+
+    // The value as it must appear after XML-escaping by xmlEsc():
+    //   & → &amp;  (none in our value, but $ must survive literally)
+    //   $ is NOT an XML special char, so xmlEsc leaves it as-is.
+    // The critical assertion: every `$` sequence survives verbatim — none got
+    // re-expanded as a JS replacement-pattern metacharacter.
+    expect(xml).toContain("Cost: $5 $&amp; $1 $$ $`  $&apos; /visit");
+    // Specifically confirm the literal "$&" sequence (most dangerous metacharacter):
+    expect(xml).toContain("$&amp;");
+    // And "$1" (capture-group reference that must NOT be expanded):
+    expect(xml).toContain("$1");
+  });
+
+  it("$ in displayName: document.xml has no nested <w:t> inside <w:t> (structure not corrupted)", async () => {
+    const bytes = await buildReportDocxBuffer(dollarVm);
+    const zip = await JSZip.loadAsync(bytes);
+    const xmlFile = zip.file("word/document.xml");
+    const xml = await xmlFile!.async("string");
+    // A nested <w:t> immediately inside another <w:t> is the canonical corruption
+    // signature produced by the string-form .replace() when $& or $` re-expand.
+    // Regex: <w:t…> … <w:t (with any content in between that is not </w:t>)
+    expect(xml).not.toMatch(/<w:t\b[^>]*>[^<]*<w:t\b/);
+  });
+
+  it("$ in displayName: no unmatched </w:t> (tag count balanced)", async () => {
+    const bytes = await buildReportDocxBuffer(dollarVm);
+    const zip = await JSZip.loadAsync(bytes);
+    const xmlFile = zip.file("word/document.xml");
+    const xml = await xmlFile!.async("string");
+    // Count opening and closing w:t tags — they must balance.
+    const opens = (xml.match(/<w:t\b/g) ?? []).length;
+    const closes = (xml.match(/<\/w:t>/g) ?? []).length;
+    expect(opens).toEqual(closes);
+  });
+
+  // Rels path: the careCompareUrl schema validates protocol + hostname but not the
+  // path, so a URL with $& in the path passes the Zod refine. We inject it directly
+  // into the vm (bypassing assembleViewModel which always computes it from the CCN)
+  // to test the rels .replace() callback fix.
+  it("$ in careCompareUrl path: rels file is not corrupted", async () => {
+    // Construct a vm whose careCompareUrl ends with $& in the path.
+    // The schema refine only checks protocol (https:) + hostname (www.medicare.gov),
+    // so this URL passes ReportViewModelSchema validation.
+    const dollarUrlVm = {
+      ...dollarVm,
+      facility: {
+        ...dollarVm.facility,
+        careCompareUrl:
+          "https://www.medicare.gov/care-compare/details/nursing-home/686123$&",
+      },
+    };
+
+    const bytes = await buildReportDocxBuffer(dollarUrlVm);
+    const zip = await JSZip.loadAsync(bytes);
+    const relsFile = zip.file("word/_rels/document.xml.rels");
+    expect(relsFile).not.toBeNull();
+    const rels = await relsFile!.async("string");
+
+    // The literal "$&" must appear in the Target attribute, NOT re-expanded.
+    expect(rels).toContain("686123$&amp;");
+    // The rels file must not have a spurious extra </Relationships> tag (the
+    // corruption signature when $& re-inserts the search string "</Relationships>").
+    const closeCount = (rels.match(/<\/Relationships>/g) ?? []).length;
+    expect(closeCount).toBe(1);
+  });
+});
