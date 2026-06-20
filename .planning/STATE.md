@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: "Phase 06-03 Task 3 — checkpoint:human-verify (Download DOCX UAT re-verification; template-fill pivot complete: buildReportDocxBuffer fills official .docx via JSZip; 0 residual placeholders; 24/24 tests passing; npm run verify green)"
-last_updated: "2026-06-20T08:56:53.226Z"
+stopped_at: "Phase 06-03 Task 7 — checkpoint:human-verify (Download DOCX UAT re-verification; footer hyperlink added: clickable Medicare Care Compare link + CMS dataset processing date injected before sectPr; 28/28 tests passing; npm run verify green; xmllint well-formed)"
+last_updated: "2026-06-20T02:15:00Z"
 last_activity: 2026-06-20
 progress:
   total_phases: 7
@@ -122,6 +122,7 @@ Recent decisions affecting current work:
 - [Phase 06-03 fix]: LABEL-01: footer label "CMS dataset processing date" across all three renderers
 - [Phase 06-03 fix]: TITLE-01: page title "Infinite — Medelite"
 - [Phase 06-03 fix 2]: DOCX-GRID-01: docx Table requires columnWidths array to emit real <w:tblGrid> entries; omitting it emits w:w="100" placeholder (0.07 in) which Word uses for layout — collapses both columns to ~1 char wide. Fixed with columnWidths + TableLayoutType.FIXED.
+- [Phase 06-03 footer]: FOOTER-DOCX-01: clickable Medicare Care Compare hyperlink footer injected into docx before body sectPr via rIdCmsLink External relationship (CLAUDE.md rule #7); guard asserts rIdCmsLink not pre-existing in template rels; 28 tests green including footer assertions + xmllint well-formed
 
 ### Pending Todos
 
@@ -148,5 +149,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-06-20T08:56:53.188Z
-Stopped at: Phase 06-03 Task 3 — checkpoint:human-verify (Download DOCX UAT re-verification; both Word bugs fixed: EMU/px logo (commit 95cac2f) + column-collapse DOCX-GRID-01 (commit 147ee76); regression tests for both added)
+Stopped at: Phase 06-03 Task 7 — checkpoint:human-verify (Download DOCX UAT; footer hyperlink productionized: clickable Medicare Care Compare link + CMS processing date injected in docx footer; 28 tests green; xmllint well-formed)
 Resume file: None
