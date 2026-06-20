@@ -36,7 +36,6 @@
 
 import React from "react";
 import {
-  formatRating,
   formatBeds,
   formatLocation,
   formatDate,
@@ -51,6 +50,7 @@ import {
 } from "@/lib/report/logo";
 import type { ReportViewModel } from "@/lib/report/view-model";
 import type { HospMetric } from "@/lib/cms/types";
+import { StarRating } from "@/components/StarRating";
 
 /**
  * Renders a single HospMetric value applying D-10/D-11/D-12 rules:
@@ -171,16 +171,19 @@ export function ReportPreview({ vm, fetchState }: Props) {
           <Row label="Medical Coverage" value={m.medicalCoverage ?? "—"} />
           <Row
             label="Overall Star Rating"
-            value={formatRating(f.starRatings.overall)}
+            value={<StarRating rating={f.starRatings.overall} />}
           />
           <Row
             label="Health Inspection"
-            value={formatRating(f.starRatings.healthInspection)}
+            value={<StarRating rating={f.starRatings.healthInspection} />}
           />
-          <Row label="Staffing" value={formatRating(f.starRatings.staffing)} />
+          <Row
+            label="Staffing"
+            value={<StarRating rating={f.starRatings.staffing} />}
+          />
           <Row
             label="Quality of Resident Care"
-            value={formatRating(f.starRatings.qualityCare)}
+            value={<StarRating rating={f.starRatings.qualityCare} />}
           />
 
           {/* Hospitalization & ED metrics — Phase 5 (CLM-01/02/03). 12 rows in

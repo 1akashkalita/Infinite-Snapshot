@@ -31,6 +31,7 @@
 //   NO "use client" — this file is server-only (PITFALLS #4: @react-pdf/renderer must not
 //     reach the client bundle; `next build` fails if it does).
 
+import React from "react";
 import {
   Document,
   Page,
@@ -40,8 +41,8 @@ import {
   Image,
   StyleSheet,
 } from "@react-pdf/renderer";
+import { PdfStarRating } from "@/components/pdf/PdfStarRating";
 import {
-  formatRating,
   formatBeds,
   formatLocation,
   formatDate,
@@ -184,6 +185,29 @@ function PdfRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+/**
+ * Rating table row variant that accepts ReactNode in the value cell.
+ * Used by the 4 star-rating rows (D-02) so <PdfStarRating> (returns a View)
+ * can be placed directly in the value cell without a <Text> wrapper.
+ * The existing PdfRow (string value) and 12 metric rows are UNCHANGED (Pitfall 4).
+ */
+function PdfRatingRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.row}>
+      <View style={styles.labelCell}>
+        <Text style={styles.labelText}>{label}</Text>
+      </View>
+      <View style={styles.valueCell}>{children}</View>
+    </View>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // ReportPDF — named export (server-only, no "use client")
 // ---------------------------------------------------------------------------
@@ -229,22 +253,18 @@ export function ReportPDF({ vm }: { vm: ReportViewModel }) {
             value={m.previousProviderPerformance ?? "—"}
           />
           <PdfRow label="Medical Coverage" value={m.medicalCoverage ?? "—"} />
-          <PdfRow
-            label="Overall Star Rating"
-            value={formatRating(f.starRatings.overall)}
-          />
-          <PdfRow
-            label="Health Inspection"
-            value={formatRating(f.starRatings.healthInspection)}
-          />
-          <PdfRow
-            label="Staffing"
-            value={formatRating(f.starRatings.staffing)}
-          />
-          <PdfRow
-            label="Quality of Resident Care"
-            value={formatRating(f.starRatings.qualityCare)}
-          />
+          <PdfRatingRow label="Overall Star Rating">
+            <PdfStarRating rating={f.starRatings.overall} />
+          </PdfRatingRow>
+          <PdfRatingRow label="Health Inspection">
+            <PdfStarRating rating={f.starRatings.healthInspection} />
+          </PdfRatingRow>
+          <PdfRatingRow label="Staffing">
+            <PdfStarRating rating={f.starRatings.staffing} />
+          </PdfRatingRow>
+          <PdfRatingRow label="Quality of Resident Care">
+            <PdfStarRating rating={f.starRatings.qualityCare} />
+          </PdfRatingRow>
 
           {/* Hospitalization & ED metrics — Phase 5 (CLM-01/02/03). 12 rows in
               template order, verbatim labels (D-04). react-pdf has NO keyed Fragment —
