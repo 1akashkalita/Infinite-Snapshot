@@ -225,10 +225,31 @@ export async function buildReportDocxBuffer(
         const originalTc = tcMatches[1][0];
         // Replace all <w:r>…</w:r> blocks inside the value cell with the star run.
         // CR-01: callback form so any `$` in starFragment is literal.
-        const newTc = originalTc.replace(
+        let newTc = originalTc.replace(
           /(<w:r\b[\s\S]*?<\/w:r>)+/,
           () => starFragment,
         );
+        // STAR-ALIGN-01: Normalize <w:ind> in the paragraph properties of the value cell.
+        // The 4 star rows in the template have inconsistent (or missing) <w:ind> values:
+        //   Overall Star Rating: w:left="152"   Health Inspection: w:left="152"
+        //   Staffing: w:left="132"              Quality of Resident Care: (no <w:ind> at all)
+        // This causes the Quality row stars to left-align differently from the others.
+        // Fix: replace any existing <w:ind .../> with w:left="0" w:firstLine="0", or
+        // insert one if absent, so all 4 star rows start from the same indent position
+        // (effectively: rely on cell padding, not paragraph indent, for star placement).
+        if (/<w:ind\b/.test(newTc)) {
+          // Replace existing <w:ind .../> with zeroed indent (CR-01: no user text in this op)
+          newTc = newTc.replace(
+            /<w:ind\b[^/]*\/>/g,
+            () => '<w:ind w:left="0" w:firstLine="0"/>',
+          );
+        } else {
+          // No <w:ind> — insert one with zero indent before </w:pPr>
+          newTc = newTc.replace(
+            "</w:pPr>",
+            () => '<w:ind w:left="0" w:firstLine="0"/></w:pPr>',
+          );
+        }
         // CR-01: callback form for the outer row replacement.
         return row.replace(originalTc, () => newTc);
       }
@@ -266,12 +287,11 @@ export async function buildReportDocxBuffer(
   const stateLine = vm.header.stateLine;
   xml = xml.split("{STATE}").join(xmlEsc(stateLine));
 
-  // 8. Inject a footer paragraph (clickable CMS hyperlink + processing date) immediately
-  //    before the body-level <w:sectPr> (there is exactly one in this template).
-  //    The hyperlink references rIdCmsLink, added to word/_rels/document.xml.rels below.
-  //    Guards:
-  //      - Template always has exactly one body-level <w:sectPr> (verified at build time).
-  //      - rIdCmsLink must NOT already be present in the template rels (guard below fails loudly).
+  // 8. Build the footer paragraph (clickable CMS hyperlink + processing date).
+  //    This paragraph is injected AFTER the chart grid in step 10 so the final
+  //    document order is: …body… → chart grid → footer → <w:sectPr>.
+  //    (Previously step 8 injected it before <w:sectPr> and step 10 inserted charts
+  //    before the same <w:sectPr>, which placed charts AFTER footer. Fixed here.)
   const f = vm.facility;
   const footerP =
     `<w:p><w:pPr><w:spacing w:before="200"/><w:tabs><w:tab w:val="right" w:pos="9600"/></w:tabs></w:pPr>` +
@@ -279,9 +299,6 @@ export async function buildReportDocxBuffer(
     `<w:t xml:space="preserve">View official CMS profile on Medicare.gov</w:t></w:r></w:hyperlink>` +
     `<w:r><w:rPr><w:color w:val="9ca3af"/><w:rtl w:val="0"/></w:rPr><w:tab/>` +
     `<w:t xml:space="preserve">CMS dataset processing date: ${xmlEsc(formatDate(f.processingDate))}</w:t></w:r></w:p>`;
-  // IMPORTANT: callback form so any `$` in footerP (e.g. from xmlEsc(formatDate(...)))
-  // is not interpreted as a replacement-pattern metacharacter (CR-01).
-  xml = xml.replace("<w:sectPr>", () => footerP + "<w:sectPr>");
 
   // 9. Add the External hyperlink relationship for the CMS link to document.xml.rels.
   //    Guard: assert rIdCmsLink is not already present so we fail loudly if the template changes.
@@ -306,30 +323,44 @@ export async function buildReportDocxBuffer(
   rels = rels.replace("</Relationships>", () => relXml + "</Relationships>");
   // Note: rels is written to zip after the optional chart-image rels are added (step 10).
 
-  // 10. Embed chart PNGs (D-11 / T-7-04 / T-7-05 / DOCX-01).
-  //     Four grouped-bar chart images (one per measure group) rasterized from recharts SVG
-  //     via @resvg/resvg-js. Each PNG is added to word/media/ and referenced via a new
-  //     Image relationship + a <w:drawing> paragraph before the body <w:sectPr>.
+  // 10. Embed chart PNGs in a 2×2 OOXML table (D-11 / T-7-04 / T-7-05 / DOCX-01).
   //
   //     Security (T-7-04): SVG is generated purely from validated vm.hospMetrics numeric
   //     values and closed-enum CHART_SERIES colors — no user-controlled string reaches the SVG.
-  //     Size (T-7-05 / DOCX-01): dimensions fixed at 300×140 px; 4 charts ≈ 60–200 KB total,
-  //     well within the 4.5 MB limit. The export-docx.test.ts assertion guards this bound.
+  //     Size (T-7-05 / DOCX-01): 4 charts well within the 4.5 MB limit.
   //     CR-01: all .replace() calls injecting chart XML use callback form.
+  //
+  //     DOCX-GRID-01: a proper <w:tblGrid> with two <w:gridCol> entries + <w:tblLayout
+  //     w:type="fixed"/> is required — omitting it collapses columns to zero width.
+  //
+  //     Sharpness: SVG is rasterized at 2× the display pixel size so the PNG has enough
+  //     DPI for crisp rendering. The EMU extents use the display (logical) size, NOT the
+  //     upscaled pixel count (DOCX-EMU-01).
+  //
+  //     Footer order: chartGrid + footerP are injected together before <w:sectPr>, so the
+  //     document order is: …body… → chart grid → footer → <w:sectPr>.
   if (vm.hospMetrics && vm.hospMetrics.length > 0) {
     const groups = groupByMeasure(vm.hospMetrics);
-    const CHART_IMG_W_PX = 300;
-    const CHART_IMG_H_PX = 140;
-    // EMU = pixels × 9525 (DOCX-EMU-01: docx ImageRun uses PIXELS but raw OOXML uses EMU)
-    const CHART_EMU_W = CHART_IMG_W_PX * 9525;
-    const CHART_EMU_H = CHART_IMG_H_PX * 9525;
+
+    // Display size (logical pixels for EMU calculation)
+    const DISPLAY_W_PX = 280;
+    const DISPLAY_H_PX = 140;
+    // Raster at 2× for sharpness; EMU uses display size (not raster size)
+    const RASTER_W_PX = DISPLAY_W_PX * 2;
+    const RASTER_H_PX = DISPLAY_H_PX * 2;
+    // EMU = logical pixels × 9525 (DOCX-EMU-01)
+    const CHART_EMU_W = DISPLAY_W_PX * 9525;
+    const CHART_EMU_H = DISPLAY_H_PX * 9525;
+
+    // Page content width ≈ 12240 dxa (US Letter minus 1″ margins each side).
+    // Two columns of equal width: 6120 dxa each.
+    const COL_DXA = 6120;
 
     // Relationship type URI for images
     const IMG_REL_TYPE =
       "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
 
     // Guard: assert our chart relationship IDs are not pre-existing in the template rels.
-    // This runs after the CMS link was added to rels above (step 9).
     for (let i = 0; i < groups.length; i++) {
       const rId = `rIdChart${i}`;
       if (rels.includes(`Id="${rId}"`)) {
@@ -339,42 +370,53 @@ export async function buildReportDocxBuffer(
       }
     }
 
-    // Build chart paragraphs and inject PNGs
-    let chartParagraphs = "";
+    // Collect cell XML for each chart (one per group slot, "" for suppressed)
+    const cellXmls: string[] = [];
     for (let i = 0; i < groups.length; i++) {
       const group = groups[i];
       const chartData = buildChartData(group);
 
-      // Skip all-suppressed groups (no bars to render — D-09)
-      if (chartData.length === 0) continue;
+      if (chartData.length === 0) {
+        // All-suppressed — empty cell with N/A text
+        cellXmls.push(
+          `<w:tc><w:tcPr><w:tcW w:w="${COL_DXA}" w:type="dxa"/></w:tcPr>` +
+            `<w:p><w:r><w:t>N/A</w:t></w:r></w:p></w:tc>`,
+        );
+        continue;
+      }
 
       const svg = renderChartSvgString(
         chartData,
-        CHART_IMG_W_PX,
-        CHART_IMG_H_PX,
+        RASTER_W_PX,
+        RASTER_H_PX,
+        group.label,
       );
-      // Guard: skip groups where SVG generation failed or produced an empty/invalid result
-      // (open-question fallback if renderToStaticMarkup does not produce a valid SVG in this context)
-      if (!svg || !svg.includes("<svg")) continue;
-      const png = svgToPngBuffer(svg, CHART_IMG_W_PX, CHART_IMG_H_PX);
+      if (!svg || !svg.includes("<svg")) {
+        cellXmls.push(
+          `<w:tc><w:tcPr><w:tcW w:w="${COL_DXA}" w:type="dxa"/></w:tcPr>` +
+            `<w:p><w:r><w:t>N/A</w:t></w:r></w:p></w:tc>`,
+        );
+        continue;
+      }
+
+      const png = svgToPngBuffer(svg, RASTER_W_PX, RASTER_H_PX);
 
       // Add PNG to word/media/
       const mediaPath = `word/media/chart-${i}.png`;
       zip.file(mediaPath, png);
 
-      // Add Image relationship to rels (accumulated, written at end of step 10)
+      // Add Image relationship to rels
       const rId = `rIdChart${i}`;
       const relEntry = `<Relationship Id="${rId}" Type="${IMG_REL_TYPE}" Target="media/chart-${i}.png"/>`;
-      // CR-01: callback form for rels injection (consistent CR-01 discipline)
+      // CR-01: callback form
       rels = rels.replace(
         "</Relationships>",
         () => relEntry + "</Relationships>",
       );
 
-      // Build <w:drawing> inline image paragraph (raw OOXML)
-      // EMU values: DOCX-EMU-01 — raw OOXML <a:ext> takes EMU (px × 9525), NOT pixels
+      // Build inline <w:drawing> OOXML for this chart cell.
+      // EMU values use DISPLAY size (not RASTER size) — DOCX-EMU-01.
       const drawingXml =
-        `<w:p><w:pPr><w:spacing w:before="120"/></w:pPr><w:r><w:rPr/><w:drawing>` +
         `<wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" distT="0" distB="0" distL="0" distR="0">` +
         `<wp:extent cx="${CHART_EMU_W}" cy="${CHART_EMU_H}"/>` +
         `<wp:effectExtent l="0" t="0" r="0" b="0"/>` +
@@ -389,19 +431,55 @@ export async function buildReportDocxBuffer(
         `</pic:blipFill>` +
         `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${CHART_EMU_W}" cy="${CHART_EMU_H}"/></a:xfrm>` +
         `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>` +
-        `</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+        `</pic:pic></a:graphicData></a:graphic></wp:inline>`;
 
-      chartParagraphs += drawingXml;
+      cellXmls.push(
+        `<w:tc><w:tcPr><w:tcW w:w="${COL_DXA}" w:type="dxa"/></w:tcPr>` +
+          `<w:p><w:pPr><w:spacing w:before="60" w:after="60"/></w:pPr>` +
+          `<w:r><w:rPr/><w:drawing>${drawingXml}</w:drawing></w:r></w:p></w:tc>`,
+      );
     }
 
-    // Inject chart paragraphs before <w:sectPr> (CR-01 callback form)
-    // Note: the footer paragraph was already injected at step 8 before <w:sectPr>.
-    // Chart paragraphs are injected again before the remaining <w:sectPr>, which places
-    // them between the footer paragraph and the section properties — acceptable since the
-    // template has only one <w:sectPr> and the footer paragraph replaced the first occurrence.
-    if (chartParagraphs) {
-      xml = xml.replace("<w:sectPr>", () => chartParagraphs + "<w:sectPr>");
+    // Pad cellXmls to even length so every row has 2 cells
+    while (cellXmls.length % 2 !== 0) {
+      cellXmls.push(
+        `<w:tc><w:tcPr><w:tcW w:w="${COL_DXA}" w:type="dxa"/></w:tcPr>` +
+          `<w:p><w:r><w:t></w:t></w:r></w:p></w:tc>`,
+      );
     }
+
+    // Build 2×2 OOXML table rows
+    let tableRows = "";
+    for (let row = 0; row < cellXmls.length / 2; row++) {
+      const left = cellXmls[row * 2];
+      const right = cellXmls[row * 2 + 1];
+      tableRows += `<w:tr>${left}${right}</w:tr>`;
+    }
+
+    // DOCX-GRID-01: <w:tblGrid> with two <w:gridCol> entries + <w:tblLayout w:type="fixed"/>
+    // prevents column collapse. Without tblGrid, Word ignores cell widths and collapses to 0.
+    const chartTable =
+      `<w:tbl>` +
+      `<w:tblPr>` +
+      `<w:tblStyle w:val="TableGrid"/>` +
+      `<w:tblW w:w="${COL_DXA * 2}" w:type="dxa"/>` +
+      `<w:tblLayout w:type="fixed"/>` +
+      `<w:tblLook w:val="0000"/>` +
+      `</w:tblPr>` +
+      `<w:tblGrid>` +
+      `<w:gridCol w:w="${COL_DXA}"/>` +
+      `<w:gridCol w:w="${COL_DXA}"/>` +
+      `</w:tblGrid>` +
+      tableRows +
+      `</w:tbl>`;
+
+    // Inject chart table + footer before <w:sectPr> (CR-01 callback form).
+    // Order: chart grid → footer paragraph → <w:sectPr>
+    const inject = chartTable + footerP;
+    xml = xml.replace("<w:sectPr>", () => inject + "<w:sectPr>");
+  } else {
+    // No charts — just inject the footer before <w:sectPr> (CR-01 callback form).
+    xml = xml.replace("<w:sectPr>", () => footerP + "<w:sectPr>");
   }
 
   // Write rels — includes rIdCmsLink (step 9) + chart image rels (step 10, if any).
