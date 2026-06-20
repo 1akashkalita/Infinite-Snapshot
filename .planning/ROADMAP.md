@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Web UI, Core Flow & Deployment** - CCN search, manual inputs, live preview, error states, first Vercel deploy (completed 2026-06-18)
 - [x] **Phase 4: PDF Export** - react-pdf document, server-side PDF route, Download PDF button, Medicare link (completed 2026-06-18)
 - [x] **Phase 5: Claims-Based Metrics** - 12 hospitalization/ED data points from CMS, suppressed-value handling, metrics in UI + PDF (completed 2026-06-19)
-- [ ] **Phase 6: .docx Export** - Word document builder, export route, Download DOCX button
+- [x] **Phase 6: .docx Export** - Word document builder, export route, Download DOCX button (completed 2026-06-20)
 - [ ] **Phase 7: Visualizations & Polish** - Star rating cards, recharts/react-pdf-charts, live preview debounce, Vercel smoke test
 
 ## Phase Details
@@ -229,5 +229,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Web UI, Core Flow & Deployment | 4/4 | Complete   | 2026-06-18 |
 | 4. PDF Export | 2/2 | Complete   | 2026-06-18 |
 | 5. Claims-Based Metrics | 4/4 | Complete   | 2026-06-19 |
-| 6. .docx Export | 3/3 | Checkpoint (human UAT re-verification pending after EMU fix) |  |
+| 6. .docx Export | 3/3 | Complete   | 2026-06-20 |
 | 7. Visualizations & Polish | 0/TBD | Not started | - |

@@ -2,215 +2,160 @@
 phase: "06-docx-export"
 plan: "03"
 subsystem: "export-controls"
-tags: ["ExportControls", "docx", "pdf", "DOCX-01", "D-01", "D-02", "D-03", "D-04", "D-05", "checkpoint-fix", "logo-sizing", "preview-width", "DOCX-GRID-01", "column-collapse"]
+tags: ["ExportControls", "docx", "DOCX-01", "template-fill", "JSZip", "OOXML", "D-06", "D-07", "D-08", "D-09", "yellow-stripped", "label-parity", "no-residual-placeholders"]
 dependency_graph:
   requires:
     - "POST /api/export/docx — 06-02"
     - "POST /api/export/pdf — Phase 04"
     - "ReportViewModel — Phase 02"
-    - "DownloadPdfButton download/blob/error logic — Phase 04"
+    - "claims-mapper labels — Phase 05"
   provides:
-    - "ExportControls: unified PDF|DOCX toggle + Download button (D-01..D-05)"
-    - "SnapshotApp left pane wired to ExportControls (replaces DownloadPdfButton)"
-    - "DOCX-01 fully closed at the code level — end-to-end browser download flow"
-    - "Word-readable .docx: logo sized in px (not EMU) so wp:extent is sane"
-    - "Word-readable .docx: table columnWidths + FIXED layout so columns render correctly"
-    - "Consistent US-Letter-width preview across all render states"
+    - "buildReportDocxBuffer(vm): Promise<Uint8Array> — template-fill docx builder"
+    - "DOCX-01 fully closed: template fidelity guaranteed by filling official .docx"
+    - "jszip as direct dependency (was transitive via docx)"
+    - "FACILITY_TEMPLATE_DOCX_BASE64 in template.ts (Vercel-safe inline)"
+    - "0 residual placeholders; yellow shading stripped; label-parity guard"
   affects:
-    - "medelite-report/src/components/ExportControls.tsx"
-    - "medelite-report/src/components/SnapshotApp.tsx"
     - "medelite-report/src/lib/docx/ReportDocx.ts"
-    - "medelite-report/src/components/ReportPreview.tsx"
-    - "medelite-report/src/components/pdf/ReportPDF.tsx"
-    - "medelite-report/src/app/layout.tsx"
+    - "medelite-report/src/lib/docx/template.ts"
+    - "medelite-report/src/lib/docx/facility-assessment-snapshot.template.docx"
+    - "medelite-report/src/app/api/export/docx/route.ts"
     - "medelite-report/tests/api/export-docx.test.ts"
-    - "DOCX-GRID-01: table columnWidths + TableLayoutType.FIXED — Word column collapse fix"
+    - "medelite-report/package.json"
 tech_stack:
-  added: []
+  added:
+    - "jszip (direct dep, was transitive) — OOXML zip manipulation for template-fill"
   patterns:
-    - "Segmented toggle with aria-pressed for format selection (D-01/D-03)"
-    - "Format-aware fetch URL: /api/export/${format} (D-05)"
-    - "WR-02 deferred revokeObjectURL via setTimeout(fn, 0)"
-    - "D-08 inline role=alert error — never ErrorBanner; button stays enabled to retry"
-    - "T-06-08 discipline: ExportControls imports only ReportViewModel as a type (never docx/ReportDocx/@react-pdf)"
-    - "docx transformation in pixels (not EMU) — docx internally multiplies px×9525"
-    - "JSZip regression test: unzip .docx and assert wp:extent cx < 10_000_000 EMU"
-    - "US-Letter preview cap: mx-auto w-full max-w-[816px] on all three render-state divs"
-    - "docx Table columnWidths drives <w:tblGrid>; TableLayoutType.FIXED tells Word to honour explicit widths"
-    - "JSZip regression test DOCX-GRID-01: assert gridCol w > 1000 dxa each and sum ~9360"
+    - "Template-fill pattern: decode base64 template → JSZip → XML label-match → fill → re-serialize"
+    - "Vercel-safe base64 inlining (same rationale as logo.ts — no filesystem reads in serverless)"
+    - "OOXML yellow-strip: regex delete w:fill=\"ffff00\" shading elements before fill"
+    - "2-cell row detection: rows with exactly 2 <w:t> tags are label|value rows"
+    - "D-09 degraded: hospMetrics undefined → metric rows default to em dash"
+    - "Label-parity guard test: all 12 claims-mapper labels must appear in filled output"
 key_files:
   created:
-    - "medelite-report/src/components/ExportControls.tsx"
+    - "medelite-report/src/lib/docx/template.ts"
+    - "medelite-report/src/lib/docx/facility-assessment-snapshot.template.docx"
   modified:
-    - "medelite-report/src/components/SnapshotApp.tsx"
     - "medelite-report/src/lib/docx/ReportDocx.ts"
-    - "medelite-report/src/components/ReportPreview.tsx"
-    - "medelite-report/src/components/pdf/ReportPDF.tsx"
-    - "medelite-report/src/app/layout.tsx"
+    - "medelite-report/src/app/api/export/docx/route.ts"
     - "medelite-report/tests/api/export-docx.test.ts"
+    - "medelite-report/package.json"
+    - "medelite-report/package-lock.json"
 decisions:
-  - "D-02: DownloadPdfButton replaced by unified ExportControls — format state + in-flight/error states in one component"
-  - "D-03: PDF is the default pre-selected format (toggle starts on PDF)"
-  - "D-04: Button label dynamically reads 'Download PDF'/'Download DOCX'/'Generating…'"
-  - "D-05: Same silent anchor download mechanics for both formats (WR-02 deferred revoke)"
-  - "T-06-08: ExportControls never imports docx/Packer/buildReportDocx — confirmed by next build passing"
-  - "DownloadPdfButton.tsx left in place (not deleted) — it is simply no longer referenced"
-  - "DOCX-EMU-01: docx transformation.width/height are PIXELS not EMU; docx multiplies px×9525 internally"
-  - "PREVIEW-WIDTH: preview capped at 816px (US-Letter 8.5in at 96 DPI) via max-w-[816px] on all three states"
-  - "LABEL-01: footer label changed to 'CMS dataset processing date' across all three renderers for clarity"
-  - "TITLE-01: page title changed to 'Infinite — Medelite' for brand context"
+  - "PIVOT: from-scratch docx-primitive builder replaced by template-fill approach (user directive)"
+  - "JSZip OOXML manipulation: decode base64 template, regex-fill XML, re-serialize — no docx primitives"
+  - "Yellow shading stripped (12x w:fill=ffff00) for visual parity with PDF/web preview"
+  - "buildReportDocxBuffer returns Uint8Array; route wraps with Buffer.from() for BodyInit TS compatibility"
+  - "Route drops Packer import; docx package retained in package.json (harmless, not removed)"
+  - "Task 3 human UAT: NOT marked passed — orchestrator specified human re-verifies rendered output"
 metrics:
-  duration: "~25 minutes"
-  completed: "2026-06-19T22:01:00Z"
-  tasks: 5
-  files: 7
+  duration: "~30 minutes"
+  completed: "2026-06-20T02:10:00Z"
+  tasks: 2
+  files: 6
 ---
 
-# Phase 06 Plan 03: Unified ExportControls Component Summary
+# Phase 06 Plan 03: Template-Fill DOCX Builder Summary
 
 ## One-liner
 
-Replaced `DownloadPdfButton` with `ExportControls` (PDF|DOCX toggle), fixed two Word-breaking bugs in the .docx builder (EMU/px logo sizing and table column-width collapse via `columnWidths` + `TableLayoutType.FIXED`), added JSZip regression tests for both bugs (DOCX-EMU-01, DOCX-GRID-01), relabeled the footer date, capped the preview to US-Letter width, and updated the page title — `npm run verify` fully green (261 tests); Task 3 human UAT **awaiting re-verification** with both bugs fixed.
+Pivot from from-scratch docx primitives to filling the official "Facility Assessment Snapshot" .docx template via JSZip + OOXML XML manipulation — strips 12 yellow shading markers, label-matches all 25 rows, replaces {STATE} — with 24 tests passing (0 residual placeholders, label-parity guard, PK magic, MIME type, filename slug); Task 3 human UAT awaiting re-verification.
 
 ## Tasks Completed
 
 | # | Name | Commit | Key Files |
 |---|------|--------|-----------|
-| 1 | Build the unified ExportControls component (D-01..D-05) | 1ea95c0 | `src/components/ExportControls.tsx` (created) |
-| 2 | Swap ExportControls into SnapshotApp and run the phase gate | 0e86ed7 | `src/components/SnapshotApp.tsx` (modified) |
-| 3 | Human UAT — awaiting re-verification after checkpoint fix | — | See below |
-
-### Checkpoint fix commits (first continuation agent)
-
-| Fix | Commit | Files |
-|-----|--------|-------|
-| FIX 1: Size docx logo in px not EMU | 95cac2f | `src/lib/docx/ReportDocx.ts` |
-| FIX 2: Add image extent regression test | 7f71a7f | `tests/api/export-docx.test.ts` |
-| FIX 3: Relabel footer to "CMS dataset processing date" | 23f870f | `ReportPreview.tsx`, `ReportPDF.tsx`, `ReportDocx.ts` |
-| FIX 4: Cap preview to US-Letter width | 080ce9d | `src/components/ReportPreview.tsx` |
-| FIX 5: Set page title to "Infinite — Medelite" | e1c98f9 | `src/app/layout.tsx` |
-
-### Second checkpoint fix commits (second continuation agent — DOCX-GRID-01)
-
-| Fix | Commit | Files |
-|-----|--------|-------|
-| FIX 6: Add columnWidths + TableLayoutType.FIXED to body Table | 147ee76 | `src/lib/docx/ReportDocx.ts` |
-| FIX 7: Add DOCX-GRID-01 regression test (gridCol collapse guard) | 86d9f50 | `tests/api/export-docx.test.ts` |
+| 1 | Add jszip dep + commit official template asset | 87f06a8 | `package.json`, `facility-assessment-snapshot.template.docx` |
+| 2 | Generate base64 template module (Vercel-safe inlining) | 9eebf3b | `src/lib/docx/template.ts` |
+| 3 | Fill official .docx template instead of building from scratch | 2345206 | `src/lib/docx/ReportDocx.ts`, `src/app/api/export/docx/route.ts` |
+| 4 | Assert template fill — values present, no residual placeholders, yellow stripped | 3e53f3e | `tests/api/export-docx.test.ts`, `src/lib/docx/template.ts` (base64 fix) |
+| 5 | Human UAT | — | awaiting re-verification |
 
 ## What Was Built
 
-### Task 1: ExportControls component
+### Template-fill approach
 
-Created `src/components/ExportControls.tsx` as a `"use client"` component with:
+The previous from-scratch builder (`buildReportDocx(vm): Document`) used docx primitives and kept producing format bugs (image EMU/px error, tblGrid column collapse). Per user directive, replaced with a template-fill builder (`buildReportDocxBuffer(vm): Promise<Uint8Array>`) that:
 
-- **`PDF | DOCX` segmented toggle** (D-01/D-03): `<div role="group" aria-label="Export format">` containing two `<button type="button">` with `aria-pressed={format === f}`, `disabled={loading}`, and Tailwind styling. PDF is the pre-selected default.
-- **Format-aware `handleDownload`** (D-05): `fetch(\`/api/export/${format}\`, ...)` — URL tracks selected format. Silent anchor download via `URL.createObjectURL` + `setTimeout(() => URL.revokeObjectURL(url), 0)` (WR-02).
-- **Format-tracking button label** (D-04): reads "Download PDF" / "Download DOCX" / "Generating…".
-- **D-07**: `disabled={loading || !vm}`.
-- **D-08 inline error**: `<p role="alert">` with a fixed UI-authored string. Never ErrorBanner.
-- **T-06-08 discipline**: only `import type { ReportViewModel }`.
+1. Decodes `FACILITY_TEMPLATE_DOCX_BASE64` (inlined in `template.ts`) into a Node Buffer.
+2. Opens the zip with JSZip; reads `word/document.xml`.
+3. Strips the 12 `w:fill="ffff00"` yellow shading markers (CMS fill-from-API markers) for visual parity with the PDF/web preview.
+4. Regex-matches each 2-cell table row (`<w:tr>` with exactly 2 `<w:t>` tags) and replaces the value cell content using the MAP built from ReportViewModel.
+5. Replaces the standalone `{STATE}` placeholder paragraph.
+6. Re-serializes the zip and returns a `Uint8Array`.
 
-### Task 2: SnapshotApp swap + phase gate
+MAP covers 13 fixed body rows + 12 metric rows (if `vm.hospMetrics` is defined). D-09 degraded path: unmatched rows default to "—" (em dash).
 
-Replaced `DownloadPdfButton` with `ExportControls` in SnapshotApp; `npm run verify:full` green including `next build`.
+### Template asset and base64 module
 
-### FIX 1: Logo sizing bug (checkpoint blocker)
+- Committed the official template to `src/lib/docx/facility-assessment-snapshot.template.docx` for provenance.
+- Created `src/lib/docx/template.ts` exporting `FACILITY_TEMPLATE_DOCX_BASE64` (27160-char base64, 20370-byte decoded) with regeneration instructions.
 
-**Root cause:** `ReportDocx.ts` passed EMU values to `ImageRun.transformation.width/height`. The `docx` library treats those as pixels and multiplies by 9525 internally, producing `wp:extent cx ≈ 17,419,320,000` EMU (~0.3 mile). Word refuses files with extents that large.
+### Route update
 
-**Fix:** Replaced `LOGO_DISPLAY_W_EMU = 1_828_800` with `LOGO_DISPLAY_W_PX = 192`. At 192 px the library produces `cx = 192 × 9525 = 1,828,800` EMU (~2 inches) — correct and Word-readable.
+Replaced `Packer.toBuffer(buildReportDocx(vm))` with `Buffer.from(await buildReportDocxBuffer(vm))`. Dropped the `docx` Packer import. HTTP contract (400 envelopes, MIME type, Content-Disposition, runtime=nodejs) unchanged.
 
-### FIX 2: Image extent regression test
+### Tests
 
-Added a test in `tests/api/export-docx.test.ts` that:
-1. Calls `buildReportDocx(validVm)` + `Packer.toBuffer()` to get the raw ZIP buffer.
-2. Uses `JSZip.loadAsync()` to unzip and read `word/document.xml`.
-3. Extracts all `wp:extent cx="..."` values and asserts each is a positive integer and `< 10_000_000 EMU` (~11 inches).
-4. Would have failed against the old EMU bug (cx ~17 billion).
+Removed obsolete from-scratch guards (wp:extent EMU test, w:gridCol collapse test). Added 10 new template-fill assertions via JSZip unzip of the 200 response:
+- Facility name present (`KENDALL LAKES HEALTHCARE AND REHAB CENTER`)
+- At least one metric % value present
+- 7 specific residual placeholder checks (all absent)
+- Yellow markers stripped
+- Label-parity guard: all 12 claims-mapper labels present as filled rows
 
-### FIX 3: Footer label relabel
-
-Changed `"CMS processing date:"` to `"CMS dataset processing date:"` in all three renderers (ReportPreview.tsx, ReportPDF.tsx, ReportDocx.ts). The date value `formatDate(f.processingDate)` is unchanged in all three. No test asserted the old label string.
-
-### FIX 4: Preview width cap
-
-Added `mx-auto w-full max-w-[816px]` to the success `<article>`, loading skeleton div, and empty/error placeholder div in `ReportPreview.tsx`. 816px ≈ 8.5in at 96 DPI (US-Letter width). Height flows freely — no fixed aspect-ratio. Consistent across all three states prevents layout jumps.
-
-### FIX 5: Page title
-
-Changed `metadata.title: "Infinite"` to `"Infinite — Medelite"` in `src/app/layout.tsx`.
+Total: 24 tests passing, 0 failing.
 
 ## Deviations from Plan
 
-### Auto-fixed Issues
+### Template-fill pivot (user directive — replaces D-06/D-07 from-scratch approach)
 
-**1. [Rule 1 - Bug] Prettier formatting fix**
-- **Found during:** Task 2 (verify:full)
-- **Issue:** `ExportControls.tsx` formatting
-- **Fix:** `npx prettier --write src/components/ExportControls.tsx`
-- **Commit:** Included in `0e86ed7`
+**Found during:** Prior human UAT rounds (repeated format bugs with docx primitives)
+**Issue:** The from-scratch approach using `docx` library primitives kept producing format bugs: EMU/px confusion on logo, tblGrid column collapse. The user proved the template-fill approach works via a standalone prototype.
+**Fix:** Replaced the entire `buildReportDocx` builder with `buildReportDocxBuffer` using JSZip + OOXML XML manipulation on the official template. All 25 rows filled correctly (0 unmatched, 0 residual placeholders) and rendered correctly in the verified prototype.
+**Decision tag:** PIVOT — replaces D-06/D-07 decisions
 
-**2. [Rule 1 - Bug] docx logo EMU/px confusion — checkpoint blocker fixed**
-- **Found during:** Human UAT (Task 3 checkpoint)
-- **Issue:** `ImageRun.transformation` takes pixels; code was passing EMU (1,828,800). Library multiplied by 9525 → `wp:extent cx ≈ 17,419,320,000 EMU`. Word rejected the file.
-- **Fix:** Changed to `LOGO_DISPLAY_W_PX = 192`; correct extent 1,828,800 EMU.
-- **Files modified:** `src/lib/docx/ReportDocx.ts`
-- **Commit:** 95cac2f
-- **Regression guard:** JSZip test added (commit 7f71a7f)
+### Yellow shading stripped (per proven_template_facts)
 
-**3. [Rule 1 - Bug] docx table columns collapsed in Word — second checkpoint fix (DOCX-GRID-01)**
-- **Found during:** Human UAT re-verification (second round)
-- **Issue:** The body `Table` was constructed with per-cell `width` settings but WITHOUT a `columnWidths` array. The `docx` library emitted a placeholder `<w:tblGrid>` with `<w:gridCol w:w="100"/>` (≈ 0.07 inch) for each column. Microsoft Word lays out columns from `<w:tblGrid>` and ignores per-cell widths when the grid is present, so both columns collapsed to ~1 character wide — text wrapped one letter per line. Browsers and mammoth auto-expand columns and hid the bug; Word does not.
-- **Fix:** Added `columnWidths: [LABEL_CELL_WIDTH_DXA, VALUE_CELL_WIDTH_DXA]` and `layout: TableLayoutType.FIXED` to the body `Table`. Also imported `TableLayoutType` from `docx`. Added an explanatory comment.
-- **Files modified:** `src/lib/docx/ReportDocx.ts`
-- **Commits:** 147ee76 (fix), 86d9f50 (regression test DOCX-GRID-01)
-- **Regression guard:** DOCX-GRID-01 test unzips the .docx, parses the first `<w:tblGrid>`, asserts both `<w:gridCol>` entries have `w:w > 1000` (real widths, not the 100 placeholder), and that they sum to 9360 ± 10.
+**Found during:** Template analysis
+**Why:** The template's 12 metric rows have `w:fill="ffff00"` (yellow) as CMS fill-from-API markers. The PDF/web preview have no yellow. Stripping them for visual parity.
+**Impact:** No functional change — purely cosmetic. Matches PDF output.
 
-### Polish Fixes (user-requested, continuation agent)
+### Buffer.from() cast for BodyInit TypeScript constraint
 
-**3. [User request] Footer label "CMS dataset processing date"**
-- Applied to ReportPreview.tsx, ReportPDF.tsx, ReportDocx.ts (commit 23f870f)
+**Found during:** TypeScript check
+**Issue:** JSZip's `generateAsync({ type: "uint8array" })` returns `Uint8Array<ArrayBufferLike>`, which TypeScript strict lib does not accept as `BodyInit`.
+**Fix:** `Buffer.from(await buildReportDocxBuffer(vm))` — Buffer extends `Uint8Array<ArrayBuffer>` and satisfies BodyInit (same cast as PDF route uses for pdfBuffer).
 
-**4. [User request] Preview capped to US-Letter width**
-- Added `mx-auto w-full max-w-[816px]` on all three render-state containers (commit 080ce9d)
+## Checkpoint: Human UAT Required
 
-**5. [User request] Page title "Infinite — Medelite"**
-- layout.tsx metadata.title updated (commit e1c98f9)
-
-## Checkpoint: Human UAT Required (re-verification after second fix)
-
-Task 3 remains a `checkpoint:human-verify` gate. Two Word-breaking bugs have now been fixed and regression-guarded:
-
-**Fix 1 (commit 95cac2f):** Logo EMU/px — `LOGO_DISPLAY_W_EMU` → `LOGO_DISPLAY_W_PX = 192`. Correct image extent (~2 inches wide); Word no longer rejects the file.
-
-**Fix 2 (commit 147ee76):** Table column collapse — added `columnWidths: [3931, 5429]` and `TableLayoutType.FIXED` to the body table. Word now renders both columns at their correct widths instead of collapsing to ~1 char wide.
+Task 3 is a `checkpoint:human-verify` gate. The orchestrator explicitly specified: **do NOT mark the human-UAT (Task 3) passed — the human re-verifies the rendered output.**
 
 **Re-verification steps:**
 1. From `medelite-report/`, run `npm run dev` and open http://localhost:3000.
 2. Enter CCN `686123`, submit, wait for the preview to populate.
 3. Flip the toggle to DOCX, click "Download DOCX".
 4. Open the downloaded `.docx` in Microsoft Word.
-5. Confirm: opens cleanly (no repair prompt); static INFINITE header visible; table renders with two proper columns (label left ~42%, value right ~58%); 13 body fields + 12 hospitalization/ED rows present with readable text (NOT one letter per line); footer link clickable.
+5. Confirm: static INFINITE/Medelite header + "FACILITY ASSESSMENT SNAPSHOT" branding visible (from template logo — not derived from facility name per CLAUDE.md rule #2); 13 body rows + 12 metric rows filled with correct values; no yellow shading; no residual placeholders; state line (FL) present.
 6. Confirm content matches the live web preview.
 
 **Status:** Awaiting human re-verification.
 
 ## Known Stubs
 
-None. `ExportControls` is fully functional.
+None. `buildReportDocxBuffer` is fully functional. All 25 template rows filled.
 
 ## Threat Surface Scan
 
-No new network endpoints or auth paths introduced by the continuation fixes. All changes are local to existing files within already-modelled trust boundaries.
+No new network endpoints, auth paths, or trust boundary changes. Template fill is entirely server-side (route handler only). The base64-inlined template adds no runtime filesystem access.
 
 ## Self-Check: PASSED
 
-- `medelite-report/src/components/ExportControls.tsx` — exists (created)
-- `medelite-report/src/components/SnapshotApp.tsx` — exists (modified)
-- `medelite-report/src/lib/docx/ReportDocx.ts` — exists (FIX 1: LOGO_DISPLAY_W_PX; FIX 6: columnWidths + TableLayoutType.FIXED)
-- `medelite-report/tests/api/export-docx.test.ts` — exists (FIX 2: extent regression; FIX 7: DOCX-GRID-01 gridCol regression)
-- `medelite-report/src/components/ReportPreview.tsx` — exists (FIX 3 + FIX 4 applied)
-- `medelite-report/src/components/pdf/ReportPDF.tsx` — exists (FIX 3 applied)
-- `medelite-report/src/app/layout.tsx` — exists (FIX 5 applied)
-- Commits: 1ea95c0, 0e86ed7, 00ad05b, 95cac2f, 7f71a7f, 23f870f, 080ce9d, e1c98f9, 147ee76, 86d9f50
-- `npm run verify` — exit 0 (260 tests passed, 1 skipped)
+- `medelite-report/src/lib/docx/facility-assessment-snapshot.template.docx` — exists (committed)
+- `medelite-report/src/lib/docx/template.ts` — exists (base64 27160 chars, PK-magic verified)
+- `medelite-report/src/lib/docx/ReportDocx.ts` — exists (buildReportDocxBuffer exported)
+- `medelite-report/src/app/api/export/docx/route.ts` — exists (uses buildReportDocxBuffer)
+- `medelite-report/tests/api/export-docx.test.ts` — exists (24 tests all passing)
+- Commits: 87f06a8, 9eebf3b, 2345206, 3e53f3e
+- `npm run verify` — exit 0 (269 tests passed, 1 skipped)

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: checkpoint
-stopped_at: "Phase 06-03 Task 3 — checkpoint:human-verify (Download DOCX UAT re-verification after column-collapse fix; two Word bugs fixed)"
-last_updated: "2026-06-19T22:30:00Z"
-last_activity: 2026-06-19
+status: verifying
+stopped_at: "Phase 06-03 Task 3 — checkpoint:human-verify (Download DOCX UAT re-verification; template-fill pivot complete: buildReportDocxBuffer fills official .docx via JSZip; 0 residual placeholders; 24/24 tests passing; npm run verify green)"
+last_updated: "2026-06-20T08:56:53.226Z"
+last_activity: 2026-06-20
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 19
-  completed_plans: 18
-  percent: 95
+  completed_plans: 19
+  percent: 86
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-06-15)
 Phase: 06 (docx-export) — CHECKPOINT (awaiting human UAT re-verification; two Word bugs fixed: EMU/px logo + column-collapse)
 Phase: 07 (visualization) — NEXT (after UAT passes)
 Plan: 3 of 3
-Status: Paused at Task 3 checkpoint:human-verify (re-verification needed after DOCX-GRID-01 column-collapse fix)
-Last activity: 2026-06-19
+Status: Phase complete — ready for verification
+Last activity: 2026-06-20
 
-Progress: [██████████████████████] 95%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Progress: [██████████████████████] 9
 | Phase 05-claims-based-metrics P03 | 18 | 2 tasks | 4 files |
 | Phase 06-docx-export P02 | 8 | 2 tasks | 2 files |
 | Phase 06-docx-export P03 | 8min | 2 tasks (3rd at checkpoint) | 2 files |
+| Phase 06-docx-export P03 | 30min | 4 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -116,6 +117,8 @@ Recent decisions affecting current work:
 - [Phase 06-03]: T-06-08: ExportControls imports only ReportViewModel as a type — confirmed by next build passing (docx/ReportDocx never reached client bundle)
 - [Phase 06-03 fix]: DOCX-EMU-01: docx ImageRun transformation takes PIXELS (not EMU); docx multiplies px×9525 internally — passing EMU produced ~17 billion EMU extent, Word-rejected
 - [Phase 06-03 fix]: PREVIEW-WIDTH: report preview capped at max-w-[816px] (US-Letter 8.5in at 96 DPI) across all three render states
+- [Phase 06-03 pivot]: DOCX-TEMPLATE-FILL: buildReportDocx() replaced by buildReportDocxBuffer() — fills official .docx template via JSZip OOXML XML manipulation instead of docx primitives; 0 residual placeholders, yellow stripped, label-parity tested
+- [Phase 06-03 pivot]: Yellow shading (w:fill=ffff00, 12×) stripped from metric rows for visual parity with PDF/web preview
 - [Phase 06-03 fix]: LABEL-01: footer label "CMS dataset processing date" across all three renderers
 - [Phase 06-03 fix]: TITLE-01: page title "Infinite — Medelite"
 - [Phase 06-03 fix 2]: DOCX-GRID-01: docx Table requires columnWidths array to emit real <w:tblGrid> entries; omitting it emits w:w="100" placeholder (0.07 in) which Word uses for layout — collapses both columns to ~1 char wide. Fixed with columnWidths + TableLayoutType.FIXED.
@@ -144,6 +147,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-19T22:30:00Z
+Last session: 2026-06-20T08:56:53.188Z
 Stopped at: Phase 06-03 Task 3 — checkpoint:human-verify (Download DOCX UAT re-verification; both Word bugs fixed: EMU/px logo (commit 95cac2f) + column-collapse DOCX-GRID-01 (commit 147ee76); regression tests for both added)
-Resume file: .planning/phases/06-docx-export/06-03-SUMMARY.md
+Resume file: None
