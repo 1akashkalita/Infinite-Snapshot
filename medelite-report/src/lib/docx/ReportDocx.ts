@@ -78,11 +78,13 @@ const LABEL_CELL_WIDTH_DXA = Math.round(TABLE_WIDTH_DXA * 0.42);
 // Value cell width: remainder
 const VALUE_CELL_WIDTH_DXA = TABLE_WIDTH_DXA - LABEL_CELL_WIDTH_DXA;
 
-// Logo dimensions in EMU (English Metric Units): 1 inch = 914400 EMU.
-// Target: ~2 inches wide (1 828 800 EMU); derive height proportionally.
-const LOGO_DISPLAY_W_EMU = 1_828_800;
-const LOGO_DISPLAY_H_EMU = Math.round(
-  (INFINITE_LOGO_HEIGHT / INFINITE_LOGO_WIDTH) * LOGO_DISPLAY_W_EMU,
+// Logo dimensions in PIXELS — the docx `transformation` field takes pixels and multiplies
+// by 9525 internally to produce EMU (1 px = 9525 EMU). Passing EMU values here produces
+// extents ~1000× too large (e.g. wp:extent cx ≈ 17 billion EMU → Word rejects the file).
+// Target: ~2 inches wide at 96 DPI (192 px); derive height proportionally.
+const LOGO_DISPLAY_W_PX = 192; // ~2in at 96 DPI; docx converts px→EMU internally (×9525)
+const LOGO_DISPLAY_H_PX = Math.round(
+  (INFINITE_LOGO_HEIGHT / INFINITE_LOGO_WIDTH) * LOGO_DISPLAY_W_PX,
 );
 
 // All-borders style: single black line on every side of the table and cells.
@@ -165,8 +167,8 @@ export function buildReportDocx(vm: ReportViewModel): Document {
     type: "png", // REQUIRED in docx v9 (RegularImageOptions)
     data: LOGO_BUFFER,
     transformation: {
-      width: LOGO_DISPLAY_W_EMU,
-      height: LOGO_DISPLAY_H_EMU,
+      width: LOGO_DISPLAY_W_PX,
+      height: LOGO_DISPLAY_H_PX,
     },
   });
 
