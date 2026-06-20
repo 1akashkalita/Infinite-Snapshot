@@ -179,3 +179,50 @@ describe("DOCX image extent regression (EMU/px guard)", () => {
     }
   });
 });
+
+// DOCX-GRID-01: table grid column-collapse regression guard.
+//
+// Microsoft Word lays out column widths from <w:tblGrid><w:gridCol w:w="N"/>. When
+// columnWidths is omitted from the docx Table constructor the library emits a
+// placeholder grid of w:w="100" (≈ 0.07 inch) causing both columns to collapse to
+// ~1 character wide and all cell text to wrap one letter per line (invisible in
+// browsers/mammoth which auto-expand columns, but fatal in Word).
+//
+// This test unzips the generated .docx, reads word/document.xml, and asserts that
+// every <w:gridCol> carries a real width (> 1000 dxa) and that the two-column grid
+// sums to approximately TABLE_WIDTH_DXA (9360 ± 10 for any rounding).
+// The test FAILS against the old code that emitted w:w="100".
+describe("DOCX-GRID-01: table grid column-collapse regression", () => {
+  it("w:tblGrid gridCol widths are real (> 1000 dxa each) and sum to ~9360 (not collapsed placeholder 100)", async () => {
+    const doc = buildReportDocx(validVm);
+    const buffer = await Packer.toBuffer(doc);
+    const zip = await JSZip.loadAsync(buffer);
+    const xmlFile = zip.file("word/document.xml");
+    expect(xmlFile).not.toBeNull();
+    const xml = await xmlFile!.async("string");
+
+    // Extract all <w:tblGrid> blocks and the gridCol widths within the first one.
+    // A real two-column table should have exactly 2 gridCol entries summing to 9360.
+    const tblGridMatch = xml.match(/<w:tblGrid>([\s\S]*?)<\/w:tblGrid>/);
+    expect(tblGridMatch).not.toBeNull();
+    const tblGridXml = tblGridMatch![1];
+
+    const gridColMatches = [
+      ...tblGridXml.matchAll(/<w:gridCol[^/]*w:w="(\d+)"/g),
+    ];
+    // Must have exactly 2 columns (label + value)
+    expect(gridColMatches.length).toBe(2);
+
+    const widths = gridColMatches.map((m) => parseInt(m[1], 10));
+    // Each column must be a real width — the collapsed placeholder is w:w="100" (~0.07 in).
+    // Label col ≈ 3931 dxa, value col ≈ 5429 dxa — both well above 1000.
+    for (const w of widths) {
+      expect(w).toBeGreaterThan(1000);
+    }
+
+    // Total must match TABLE_WIDTH_DXA (9360) within a small rounding tolerance.
+    const total = widths.reduce((a, b) => a + b, 0);
+    expect(total).toBeGreaterThanOrEqual(9350);
+    expect(total).toBeLessThanOrEqual(9370);
+  });
+});
