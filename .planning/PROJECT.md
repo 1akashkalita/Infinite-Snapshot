@@ -21,7 +21,9 @@ Enter a CCN → instantly get an accurate, polished, downloadable facility snaps
 - [x] **Web UI, core flow & first deploy (Phase 3, 2026-06-18)** — the headline flow is **live at https://infinite-snapshot.vercel.app** (public repo, Vercel git auto-deploy on `main` + PR previews, Root Directory `medelite-report`): enter a CCN → Generate → live `ReportPreview` populated from `GET /api/facility` via `assembleViewModel`, with client-side CCN precheck (`isValidCcnFormat`), inline-vs-banner error routing (`getErrorPresentation`), and the six manual operational inputs + facility-name override flowing into the preview on every keystroke (name override stays out of the static header — rule #2). The report body matches the reference report exactly (interleaved order + verbatim labels); the address renders as a documented raw-CMS pass-through. Anchors LOOK-01/02/03, INPT-01/02/03, PREV-01, ERR-01/02, DEP-01/02; code review's 1 critical (0-census falsiness, D-10) + 4 warnings fixed with a regression test; `npm run verify` green (147 tests).
 - [x] **PDF export (Phase 4, 2026-06-18)** — a "Download PDF" button in `SnapshotApp` POSTs the assembled `ReportViewModel` to `POST /api/export/pdf`, which Zod-validates the body and returns a server-rendered `@react-pdf/renderer` document (`renderToBuffer`) as a Blob for a silent anchor download (D-07 disabled/"Generating…" states, D-08 inline retry). The `ReportPDF` document mirrors `ReportPreview` 1:1 — static header (rule #2, `vm.header.*` only), 13 verbatim-labelled body rows, and a clickable `<Link>` to the Medicare Care Compare profile. Injection-safe `slugFilename` (both displayName and CCN allowlist-sanitized — CR-01 fix). Anchors PDF-01/02/03; code review's 1 blocker (header injection) + 1 warning fixed; `npm run verify:full` green (159 tests). Human PDF-viewer verification tracked in `04-HUMAN-UAT.md`.
 
-> Phase 4 ships the polished PDF export end-to-end (server render + Medicare hyperlink + client download). All Required items are now validated; the bonus items (claims metrics, charts, .docx, hardened errors) follow in Phases 5–7.
+- [x] **Claims metrics, .docx export & visual polish (Phases 5–7, 2026-06-21)** — the 12 claims-based hospitalization/ED metrics (4 measures × facility/national/state across `ijh5-nb2v` + `xcdc-v8bm`) render in all three outputs (Phase 5); a `.docx` export fills the official Word template via JSZip/OOXML with a clickable Medicare footer (Phase 6); and Phase 7 adds color-banded star glyphs (web Tailwind, PDF react-pdf `<Svg><Path>`, docx colored Unicode runs), grouped bar charts in all three renderers (web recharts v2, PDF native `<Svg><Rect>`, docx @resvg-rasterized PNGs in a 2×2 grid), and a 300ms manual-input debounce with no CMS re-fetch. The live-Vercel SC#4 smoke uncovered + fixed two production-only bugs invisible to vitest: Turbopack mangling `+`-chained OOXML literals (→ single template literals) and `@resvg` lacking Lambda fonts (→ embedded DejaVu Sans subset). Anchors VIZ-01/02 (+ Phase 5/6 bonus reqs); `npm run verify:full` green (394 tests); 2 live spot-checks (leading-zero CCN, N/A suppression) tracked in `07-HUMAN-UAT.md`.
+
+> Phase 4 shipped the polished PDF export end-to-end (server render + Medicare hyperlink + client download); Phases 5–7 added all committed bonuses (claims metrics, .docx, charts/visual cards, live debounce, hardened errors). **Milestone v1.0 complete** — all required + bonus items validated and live.
 
 ### Active
 
@@ -39,11 +41,11 @@ Enter a CCN → instantly get an accurate, polished, downloadable facility snaps
 
 **Bonus (committed — these are how we exceed expectations):**
 
-- [ ] 12 CMS claims-based metrics — **4 measures × {facility value, national avg, state avg}**, spanning three datasets: facility values from Medicare Claims Quality Measures (`ijh5-nb2v`, display the adjusted score), national + state averages from State US Averages (`xcdc-v8bm`, keyed `NATION`/`FL`). Match the reference report's labels and order, not its illustrative numbers.
-- [ ] Charts & visual cards — star ratings and key metrics rendered as polished visual cards/charts in both the web UI and the export, not just plain text
-- [ ] .docx export — a Word export option alongside the required PDF
-- [ ] Live preview — in-browser report preview that updates as the user types manual inputs, before downloading
-- [ ] Hardened error handling — comprehensive boundaries for edge cases: invalid CCN, facility-not-found, network failure, and missing/partial CMS fields, all handled cleanly and tested
+- [x] 12 CMS claims-based metrics — **4 measures × {facility value, national avg, state avg}**, spanning three datasets: facility values from Medicare Claims Quality Measures (`ijh5-nb2v`, display the adjusted score), national + state averages from State US Averages (`xcdc-v8bm`, keyed `NATION`/`FL`). Match the reference report's labels and order, not its illustrative numbers. _(Phase 5)_
+- [x] Charts & visual cards — star ratings and key metrics rendered as polished visual cards/charts in the web UI, PDF, and .docx, not just plain text _(Phase 7)_
+- [x] .docx export — a Word export option alongside the required PDF (fills the official Word template via JSZip/OOXML) _(Phase 6)_
+- [x] Live preview — in-browser report preview that updates as the user types manual inputs (300ms debounce, no CMS re-fetch), before downloading _(Phase 3 + Phase 7 debounce)_
+- [x] Hardened error handling — comprehensive boundaries for edge cases: invalid CCN, facility-not-found, network failure, and missing/partial CMS fields, all handled cleanly and tested _(Phase 2/3)_
 
 ### Out of Scope
 
@@ -108,4 +110,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-20 after Phase 6 (.docx Export) completion — Required items + claims metrics + .docx export validated; the .docx now fills the official Word template (jszip/OOXML) with a clickable CMS link footer. Phase 7 (Visualizations & Polish) next. App live at https://infinite-snapshot.vercel.app (rename to infinite-medelite pending in Vercel dashboard).*
+*Last updated: 2026-06-21 after Phase 7 (Visualizations & Polish) completion — **Milestone v1.0 complete**. All required items + all committed bonuses (claims metrics, .docx, charts/visual cards, 300ms live-preview debounce, hardened errors) are validated and live. App live at **https://infinite-medelite.vercel.app** (the old infinite-snapshot.vercel.app alias is retired after the repo rename to Infinite-MedElite). Two live spot-checks (leading-zero CCN, N/A suppression) remain as tracked human-UAT items.*
